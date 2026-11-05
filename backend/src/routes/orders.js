@@ -541,11 +541,10 @@ export function paymentRoutes(context, admin = false) {
           media.asset_type !== "payment_proof"
         )
           fail("A completed payment proof image is required.");
-        if (
-          !req.user ||
-          (media.uploaded_by !== String(req.user._id) &&
-            req.user.auth.role !== "admin")
-        )
+        const isProofOwner = req.user
+          ? (media.uploaded_by === String(req.user._id) || req.user.auth.role === "admin")
+          : (media.uploaded_by === (req.guest || "guest") || media.uploaded_by === "guest" || order.guest_token === req.guest);
+        if (!isProofOwner)
           fail("Payment proof belongs to another account.", 403);
         const updated = await update(
           db,

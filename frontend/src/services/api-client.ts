@@ -50,7 +50,14 @@ export const setRefreshFailed = (failed: boolean): void => {
 
 export const getGuestToken = (): string | null => {
   if (typeof window !== "undefined") {
-    return localStorage.getItem("guest_token") || guestToken;
+    let token = localStorage.getItem("guest_token");
+    if (!token) {
+      token = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      localStorage.setItem("guest_token", token);
+    }
+    return token;
   }
   return guestToken;
 };

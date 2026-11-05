@@ -67,9 +67,16 @@ export function mediaRoutes({ db }) {
   const staticRoot = path.resolve(process.env.STATIC_DIR || "static");
 
   const checkOwner = (req, asset) => {
+    if (asset.asset_type === "payment_proof" && !req.user) {
+      if (asset.uploaded_by !== (req.guest || "guest") && asset.uploaded_by !== "guest") {
+        fail("Access forbidden.", 403);
+      }
+      return;
+    }
     if (
-      asset.uploaded_by !== String(req.user._id) &&
-      req.user.auth.role !== "admin"
+      !req.user ||
+      (asset.uploaded_by !== String(req.user._id) &&
+        req.user.auth.role !== "admin")
     )
       fail("Access forbidden.", 403);
   };
@@ -80,10 +87,12 @@ export function mediaRoutes({ db }) {
 
   router.post(
     "/presign",
-    authenticated,
     validate("PresignRequest"),
     async (req, res) => {
       const body = req.body;
+      if (body.asset_type !== "payment_proof" && !req.user) {
+        fail("Authentication required.", 401, "UNAUTHORIZED");
+      }
       const rule = rules[body.asset_type];
       if (
         !rule ||
@@ -101,7 +110,7 @@ export function mediaRoutes({ db }) {
           )
       )
         fail("Invalid upload size.");
-      const userId = String(req.user._id);
+      const userId = req.user ? String(req.user._id) : (req.guest || "guest");
       if (
         [
           "product_image",
@@ -111,7 +120,7 @@ export function mediaRoutes({ db }) {
           "packaging_file",
           "video",
         ].includes(body.asset_type) &&
-        !["admin", "warehouse"].includes(req.user.auth.role)
+        (!req.user || !["admin", "warehouse"].includes(req.user.auth.role))
       )
         fail("Staff access is required for catalog media.", 403);
       const filename = path
@@ -196,7 +205,6 @@ export function mediaRoutes({ db }) {
 
   router.post(
     "/complete",
-    authenticated,
     validate("UploadCompleteRequest"),
     async (req, res) => {
       const asset = await get(db, "media_assets", req.body.id);
@@ -218,13 +226,12 @@ export function mediaRoutes({ db }) {
 
   router.get("/:id", async (req, res) => {
     const asset = await get(db, "media_assets", req.params.id);
-    if (
-      asset.asset_type === "payment_proof" &&
-      (!req.user ||
-        (asset.uploaded_by !== String(req.user._id) &&
-          !["admin", "warehouse"].includes(req.user.auth.role)))
-    )
-      fail("Access forbidden.", 403);
+    if (asset.asset_type === "payment_proof") {
+      const isOwner = req.user
+        ? (asset.uploaded_by === String(req.user._id) || ["admin", "warehouse"].includes(req.user.auth.role))
+        : (asset.uploaded_by === (req.guest || "guest") || asset.uploaded_by === "guest");
+      if (!isOwner) fail("Access forbidden.", 403);
+    }
     ok(res, asset);
   });
 
