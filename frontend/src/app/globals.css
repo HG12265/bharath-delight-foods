@@ -308,3 +308,15 @@
 @media(prefers-reduced-motion:reduce){.animate-fade-up,.animate-fade-in,.animate-fade-in-left{animation:none!important;opacity:1!important;transform:none!important}.animate-float,.animate-slide-in{animation:none!important}html{scroll-behavior:auto}}
 
 :root {--font-serif:"Cormorant Garamond",serif;--font-sans:"Outfit",sans-serif;--font-script:"Dancing Script",cursive;}
+
+/* Hide Netlify badge / drawer */
+iframe[src*="netlify"],
+#netlify-badge,
+.netlify-badge,
+[data-netlify-badge],
+[data-netlify-drawer] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
