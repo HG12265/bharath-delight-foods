@@ -93,18 +93,31 @@ export function orderRoutes(context, admin = false) {
     router.get("/reports/export", roles("admin"), (req, res) =>
       reportExport(db, req, res),
     );
-    router.get("/", async (req, res) =>
-      ok(
+    router.get("/", async (req, res) => {
+      const filter = { ...active };
+      if (req.query.status) {
+        if (req.query.status === "paid") {
+          filter.payment_status = "paid";
+        } else {
+          filter.order_status = req.query.status;
+        }
+      } else {
+        filter.$or = [
+          { order_status: { $ne: "pending_payment" } },
+          { proof_submitted_at: { $ne: null } },
+        ];
+      }
+      return ok(
         res,
         await db
           .collection("orders")
-          .find(active)
+          .find(filter)
           .sort({ created_at: -1 })
           .skip(skip(req.query.skip))
           .limit(limit(req.query.limit))
           .toArray(),
-      ),
-    );
+      );
+    });
     router.patch(
       "/:id/status",
       validate("AdminOrderStatusUpdateSchema"),
@@ -247,6 +260,7 @@ export function orderRoutes(context, admin = false) {
           payment_status: "pending",
           fulfillment_status: "pending",
           order_status: "pending_payment",
+          proof_submitted_at: null,
           invoice_number: null,
           invoice_generated_at: null,
         },
@@ -263,15 +277,6 @@ export function orderRoutes(context, admin = false) {
         db,
         "checkouts",
         req.params.checkout_id,
-        { order_id: String(order._id) },
-        session,
-      );
-      await notify(
-        db,
-        checkout.customer_id,
-        "order_created",
-        "New Order Created",
-        `Order ${orderNumber} has been created successfully.`,
         { order_id: String(order._id) },
         session,
       );
@@ -555,6 +560,25 @@ export function paymentRoutes(context, admin = false) {
             status: "proof_submitted",
             rejection_reason: null,
           },
+          session,
+        );
+        await update(
+          db,
+          "orders",
+          req.params.order_id,
+          {
+            order_status: "confirmed",
+            proof_submitted_at: now(),
+          },
+          session,
+        );
+        await notify(
+          db,
+          order.customer_id,
+          "order_placed",
+          "Order Placed Successfully",
+          `Thank you for your order! Your payment screenshot for ${order.order_number} has been received.`,
+          { order_id: req.params.order_id, payment_id: String(payment._id) },
           session,
         );
         await notify(

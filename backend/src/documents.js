@@ -192,7 +192,14 @@ export function invoicePdf(order, store) {
 }
 export async function reportExport(db, req, res) {
   const filter = { ...active };
-  if (req.query.status) filter.order_status = String(req.query.status);
+  if (req.query.status) {
+    filter.order_status = String(req.query.status);
+  } else {
+    filter.$or = [
+      { order_status: { $ne: "pending_payment" } },
+      { proof_submitted_at: { $ne: null } },
+    ];
+  }
   if (req.query.start_date || req.query.end_date) {
     filter.created_at = {};
     if (req.query.start_date) {

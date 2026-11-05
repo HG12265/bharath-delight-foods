@@ -243,6 +243,7 @@ export interface Order {
   payment_status: PaymentStatus;
   fulfillment_status: FulfillmentStatus;
   order_status: OrderStatus;
+  proof_submitted_at?: string | null;
   invoice_number?: string;
   invoice_generated_at?: string;
   created_at: string;

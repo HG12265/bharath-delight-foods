@@ -23,6 +23,8 @@ import {
   FileText,
   Clock,
   ExternalLink,
+  Package,
+  Truck,
   X
 } from "lucide-react";
 import { InitiatePaymentResponse } from "@/services/payment-service";
@@ -286,21 +288,21 @@ export default function OrderDetailsPage() {
 
               {/* SUCCESS BANNER */}
               {showSuccessBanner && (
-                <div className="bg-[#EAF5EC] border border-green-300 rounded-lg p-5 shadow-sm flex items-start gap-3 relative animate-fade-up">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center border border-green-200 shrink-0 text-green-700">
+                <div className="bg-[#EAF5EC] border border-[#2E7D32]/30 rounded-lg p-5 shadow-sm flex items-start gap-3.5 relative animate-fade-up">
+                  <div className="w-10 h-10 bg-[#2E7D32]/10 rounded-full flex items-center justify-center border border-[#2E7D32]/20 shrink-0 text-[#2E7D32]">
                     <CheckCircle2 className="w-5 h-5 animate-bounce" />
                   </div>
                   <div className="flex-grow pr-6">
-                    <h4 className="font-serif text-sm font-bold text-green-900">
-                      Transaction Proof Uploaded Successfully!
+                    <h4 className="font-serif text-base font-bold text-[#1E352F]">
+                      Thank You! Your Order Has Been Placed Successfully!
                     </h4>
-                    <p className="text-[11px] font-sans text-green-800/85 mt-1 leading-relaxed">
-                      Admin will verify your order and update you.
+                    <p className="text-xs font-sans text-[#1E352F]/80 mt-1 leading-relaxed">
+                      We have received your payment details. Our team is carefully preparing your authentic delights, and your package will be delivered to your doorstep soon!
                     </p>
                   </div>
                   <button
                     onClick={() => setShowSuccessBanner(false)}
-                    className="absolute right-2 top-2 p-1 text-green-700 hover:bg-green-200 rounded transition"
+                    className="absolute right-2.5 top-2.5 p-1 text-[#1E352F]/60 hover:text-[#1E352F] hover:bg-[#2E7D32]/10 rounded transition"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -308,57 +310,84 @@ export default function OrderDetailsPage() {
               )}
 
               {/* STATUS CARD */}
-              {isConfirmed ? (
-                <div className="bg-white border-2 border-success/30 rounded-lg p-6 shadow-sm flex items-start gap-4">
-                  <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center border border-success/20 shrink-0 text-success">
-                    <CheckCircle2 className="w-6 h-6" />
-                  </div>
-                  <div className="flex-grow">
-                    <h2 className="font-serif text-2xl font-bold text-deodharForest">
-                      Order Confirmed!
-                    </h2>
-                    <p className="text-sm font-sans text-indianInk/60 mt-1">
-                      We have received your payment. Your order <span className="font-bold text-indianInk">#{order.order_number}</span> is being processed for packing and dispatch.
-                    </p>
-                    {order.payment_status === "paid" && (
-                      <div className="mt-4 space-y-2">
-                        <button
-                          onClick={handleDownloadInvoice}
-                          disabled={isDownloadingInvoice}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-deodharForest text-richCream border border-transparent hover:border-burnishedGold hover:shadow-[0_4px_12px_rgba(15,61,46,0.15)] rounded-[4px] font-sans text-xs font-semibold tracking-widest uppercase transition-all duration-300 disabled:opacity-50"
-                        >
-                          {isDownloadingInvoice ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              <span>Downloading Invoice...</span>
-                            </>
-                          ) : (
-                            <>
-                              <FileText className="w-3.5 h-3.5 text-gheeGold" />
-                              <span>Download Invoice</span>
-                            </>
-                          )}
-                        </button>
-                        {downloadInvoiceError && (
-                          <p className="text-xs text-destructive font-semibold font-sans">{downloadInvoiceError}</p>
-                        )}
+              {(isConfirmed || isProofSubmitted) ? (
+                <div className="bg-white border-2 border-[#2E7D32]/25 rounded-xl p-6 sm:p-8 shadow-sm space-y-6 animate-fade-up">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-[#2E7D32]/10 rounded-full flex items-center justify-center border border-[#2E7D32]/20 shrink-0 text-[#2E7D32]">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div className="flex-grow">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="font-serif text-2xl font-bold text-deodharForest">
+                          Thank You! Your Order is Placed!
+                        </h2>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          {order.payment_status === "paid" ? "Confirmed & Paid" : "Order Placed • Preparing"}
+                        </span>
                       </div>
-                    )}
+                      <p className="text-sm font-sans text-indianInk/75 mt-2 leading-relaxed">
+                        Thank you for choosing <span className="font-semibold text-deodharForest">Bharath Delight Foods</span>! We have received your payment details for order <span className="font-bold text-deodharForest">#{order.order_number}</span>. Our team is carefully packaging your authentic delights fresh, and your shipment will be delivered right to your doorstep soon.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ) : isProofSubmitted ? (
-                <div className="bg-white border border-burnishedGold/25 rounded-lg p-6 shadow-sm flex items-start gap-4">
-                  <div className="w-12 h-12 bg-burnishedGold/5 rounded-full flex items-center justify-center border border-burnishedGold/15 shrink-0 text-burnishedGold">
-                    <Clock className="w-6 h-6 animate-pulse" />
+
+                  {/* Delightful delivery highlights / steps */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <div className="bg-[#FAF9F6] border border-burnishedGold/15 rounded-lg p-3.5 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                        <Check className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold font-sans text-deodharForest uppercase tracking-wider">Payment Recorded</p>
+                        <p className="text-[10px] font-sans text-indianInk/60">Screenshot received</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#FAF9F6] border border-burnishedGold/15 rounded-lg p-3.5 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-100">
+                        <Package className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold font-sans text-deodharForest uppercase tracking-wider">Fresh Packaging</p>
+                        <p className="text-[10px] font-sans text-indianInk/60">Hygienic traditional prep</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#FAF9F6] border border-burnishedGold/15 rounded-lg p-3.5 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-100">
+                        <Truck className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-bold font-sans text-deodharForest uppercase tracking-wider">Doorstep Delivery</p>
+                        <p className="text-[10px] font-sans text-indianInk/60">Dispatched soon</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="font-serif text-2xl font-bold text-deodharForest">
-                      Payment Verification Pending
-                    </h2>
-                    <p className="text-sm font-sans text-indianInk/60 mt-1">
-                      Your payment proof screenshot has been submitted. Our warehouse verification team will inspect the transfer and confirm order <span className="font-bold text-indianInk">#{order.order_number}</span> shortly.
-                    </p>
-                  </div>
+
+                  {order.payment_status === "paid" && (
+                    <div className="pt-2 border-t border-burnishedGold/10">
+                      <button
+                        onClick={handleDownloadInvoice}
+                        disabled={isDownloadingInvoice}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-deodharForest text-richCream border border-transparent hover:border-burnishedGold hover:shadow-[0_4px_12px_rgba(15,61,46,0.15)] rounded-[4px] font-sans text-xs font-semibold tracking-widest uppercase transition-all duration-300 disabled:opacity-50"
+                      >
+                        {isDownloadingInvoice ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Downloading Invoice...</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="w-3.5 h-3.5 text-gheeGold" />
+                            <span>Download Invoice</span>
+                          </>
+                        )}
+                      </button>
+                      {downloadInvoiceError && (
+                        <p className="text-xs text-destructive font-semibold font-sans mt-2">{downloadInvoiceError}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="bg-white border border-burnishedGold/15 rounded-lg p-6 md:p-8 shadow-sm space-y-6">

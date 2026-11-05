@@ -193,6 +193,11 @@ export default function AdminOrdersPage() {
         } else {
           if (order.order_status !== selectedStatus) return false;
         }
+      } else {
+        // Under "All Orders", exclude unsubmitted checkouts where payment proof was never submitted
+        if (order.order_status === "pending_payment" && !order.proof_submitted_at) {
+          return false;
+        }
       }
 
       // Order No Search

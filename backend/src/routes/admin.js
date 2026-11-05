@@ -404,7 +404,12 @@ export function adminRoutes({ db }) {
       inventories,
       revenue,
     ] = await Promise.all([
-      count("orders"),
+      count("orders", {
+        $or: [
+          { order_status: { $ne: "pending_payment" } },
+          { proof_submitted_at: { $ne: null } },
+        ],
+      }),
       count("customers"),
       count("products", { status: "active" }),
       count("payments", { status: "proof_submitted" }),
@@ -414,11 +419,17 @@ export function adminRoutes({ db }) {
       count("reviews", { moderation_status: "pending" }),
       db
         .collection("orders")
-        .find(
-          req.user.auth.role === "warehouse"
-            ? { ...active, order_status: "confirmed" }
-            : active,
-        )
+        .find({
+          ...active,
+          ...(req.user.auth.role === "warehouse"
+            ? { order_status: "confirmed" }
+            : {
+                $or: [
+                  { order_status: { $ne: "pending_payment" } },
+                  { proof_submitted_at: { $ne: null } },
+                ],
+              }),
+        })
         .sort({ created_at: -1 })
         .limit(10)
         .toArray(),
