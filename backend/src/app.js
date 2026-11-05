@@ -78,11 +78,19 @@ export function createApp(context) {
     process.env.CORS_ORIGINS || "http://localhost:3000,http://127.0.0.1:3000"
   )
     .split(",")
-    .map((value) => value.trim());
+    .map((value) => value.trim().replace(/\/$/, ""));
   app.use(
     cors({
-      origin: (origin, callback) =>
-        callback(null, !origin || origins.includes(origin)),
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const cleanOrigin = origin.replace(/\/$/, "");
+        const isAllowed = origins.some((allowed) => {
+          if (allowed === "*" || allowed === cleanOrigin) return true;
+          if (allowed.startsWith("*.") && cleanOrigin.endsWith(allowed.slice(1))) return true;
+          return false;
+        });
+        callback(null, isAllowed);
+      },
       credentials: true,
       exposedHeaders: [
         "X-Guest-Token",

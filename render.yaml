@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: bharath-delight-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: TRUST_PROXY
+        value: "true"
+      - key: DATABASE_NAME
+        value: mr_bharath_foods
+      - key: MONGODB_URI
+        sync: false
+      - key: UPI_ID
+        value: bharaththambidurai@oksbi
+      - key: CORS_ORIGINS
+        value: https://bharath-delight-foods.netlify.app,*.netlify.app,http://localhost:3000
+      - key: FRONTEND_ORIGIN
+        value: https://bharath-delight-foods.netlify.app
+      - key: PUBLIC_API_URL
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        value: bharathdelightfoods@gmail.com
+      - key: BREVO_SENDER_NAME
+        value: Bharath Delight Foods
+      - key: ADMIN_EMAIL
+        value: bharathdelightfoods@gmail.com
+      - key: ADMIN_PHONE
+        value: "9150141007"
+      - key: ADMIN_PASSWORD
+        sync: false

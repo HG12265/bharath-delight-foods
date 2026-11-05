@@ -34,13 +34,17 @@ export const profile = (customer) => ({
   addresses: customer.addresses || [],
   created_at: customer.created_at,
 });
-const cookieOptions = () => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.COOKIE_SAMESITE || "lax",
-  path: "/",
-  maxAge: 30 * 86400000,
-});
+const cookieOptions = () => {
+  const isProd = process.env.NODE_ENV === "production";
+  const sameSite = process.env.COOKIE_SAMESITE || (isProd ? "none" : "lax");
+  return {
+    httpOnly: true,
+    secure: isProd || sameSite === "none",
+    sameSite,
+    path: "/",
+    maxAge: 30 * 86400000,
+  };
+};
 
 export function authContext(db) {
   return async (req, res, next) => {
