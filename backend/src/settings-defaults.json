@@ -1,0 +1,18 @@
+{
+  "upi_id": "bharaththambidurai@oksbi",
+  "tax_percentage": "5.00",
+  "shipping_fee": "50.00",
+  "free_shipping_threshold": "500.00",
+  "support_contact": "bharathdelightfoods@gmail.com",
+  "fssai_number": "12424999000123",
+  "gst_number": "33AABCM1234D1Z5",
+  "brand_name": "Bharath Delight Foods",
+  "support_email": "bharathdelightfoods@gmail.com",
+  "support_phone": "+91 91501 41007",
+  "business_address": "Bharath Delight Foods, Adiannamalai, Tiruvannamalai, 606604, Tamil Nadu, India",
+  "payment_display_name": "Bharath Delight Foods",
+  "upi_instructions": "Pay via any UPI app (GPay, PhonePe, Paytm) to the UPI ID or scan QR code and upload screenshot proof.",
+  "public_support_email": "bharathdelightfoods@gmail.com",
+  "public_support_phone": "+91 91501 41007",
+  "working_hours": "Mon-Sat, 9 AM - 6 PM"
+}

@@ -1,0 +1,638 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/inventories",
+    "source": "inventories.py",
+    "handler": "list_all_inventories"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/inventories/alerts/low-stock",
+    "source": "inventories.py",
+    "handler": "get_low_stock_alerts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/inventories/export/csv",
+    "source": "inventories.py",
+    "handler": "export_inventory_csv"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/inventories/:sku/history",
+    "source": "inventories.py",
+    "handler": "get_inventory_history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/inventories/:sku",
+    "source": "inventories.py",
+    "handler": "get_inventory_by_sku"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/inventories",
+    "source": "inventories.py",
+    "handler": "create_new_inventory"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/inventories/:sku/adjust",
+    "source": "inventories.py",
+    "handler": "adjust_stock_levels"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/inventories/:sku/reserve",
+    "source": "inventories.py",
+    "handler": "reserve_stock_levels"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/inventories/:sku/release",
+    "source": "inventories.py",
+    "handler": "release_stock_levels"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/notifications/me",
+    "source": "notifications.py",
+    "handler": "get_my_notifications"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/notifications/read-all",
+    "source": "notifications.py",
+    "handler": "mark_all_notifications_read"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/notifications/:id/read",
+    "source": "notifications.py",
+    "handler": "mark_notification_read"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/notifications",
+    "source": "notifications.py",
+    "handler": "list_all_notifications_admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/production-checklist",
+    "source": "production_hardening.py",
+    "handler": "get_production_checklist"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/shipments/order/:order_id",
+    "source": "shipments.py",
+    "handler": "create_shipment"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/shipments/order/:order_id",
+    "source": "shipments.py",
+    "handler": "get_shipment_by_order"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/shipments/:id",
+    "source": "shipments.py",
+    "handler": "get_shipment_by_id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/shipments/:id/status",
+    "source": "shipments.py",
+    "handler": "update_shipment_status_admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/shipments",
+    "source": "shipments.py",
+    "handler": "list_all_shipments_admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/shipments/:id",
+    "source": "shipments.py",
+    "handler": "edit_shipment"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/shipments/:id/cancel",
+    "source": "shipments.py",
+    "handler": "cancel_shipment"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/admin/shipments/:id",
+    "source": "shipments.py",
+    "handler": "delete_shipment"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/products",
+    "source": "products.py",
+    "handler": "list_products"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/products/admin/all",
+    "source": "products.py",
+    "handler": "list_all_products_admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/products/:slug",
+    "source": "products.py",
+    "handler": "get_product_by_slug"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/products",
+    "source": "products.py",
+    "handler": "create_product"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/products/:id",
+    "source": "products.py",
+    "handler": "update_product"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/products/:id",
+    "source": "products.py",
+    "handler": "delete_product"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/products/:id/status",
+    "source": "products.py",
+    "handler": "update_product_status"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/media/presign",
+    "source": "media.py",
+    "handler": "request_upload_presign"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/media/upload/mock/*storage_key",
+    "source": "media.py",
+    "handler": "upload_mock_file"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/media/complete",
+    "source": "media.py",
+    "handler": "complete_upload_confirmation"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/media/health",
+    "source": "media.py",
+    "handler": "check_media_storage_health"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/media/:id",
+    "source": "media.py",
+    "handler": "get_media_asset_metadata"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/media/:id",
+    "source": "media.py",
+    "handler": "delete_media_asset_record"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/carts/me",
+    "source": "carts.py",
+    "handler": "get_my_cart"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/carts/me/items",
+    "source": "carts.py",
+    "handler": "add_item_to_cart"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/carts/me/items/:variant_id",
+    "source": "carts.py",
+    "handler": "update_item_quantity_in_cart"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/carts/me/items/:variant_id",
+    "source": "carts.py",
+    "handler": "remove_item_from_cart"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/carts/me",
+    "source": "carts.py",
+    "handler": "clear_my_cart"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/carts/merge",
+    "source": "carts.py",
+    "handler": "merge_guest_cart_to_customer"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/search",
+    "source": "search.py",
+    "handler": "search"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/search/autocomplete",
+    "source": "search.py",
+    "handler": "autocomplete"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/search/trending",
+    "source": "search.py",
+    "handler": "trending"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/wishlists/me",
+    "source": "wishlists.py",
+    "handler": "get_my_wishlist"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/wishlists/me/items",
+    "source": "wishlists.py",
+    "handler": "add_item_to_wishlist"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/wishlists/me/items/:variant_id",
+    "source": "wishlists.py",
+    "handler": "remove_item_from_wishlist"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/categories",
+    "source": "categories.py",
+    "handler": "list_categories"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/categories/tree",
+    "source": "categories.py",
+    "handler": "get_categories_tree"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/categories/admin/all",
+    "source": "categories.py",
+    "handler": "list_all_categories_admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/categories/:slug",
+    "source": "categories.py",
+    "handler": "get_category_by_slug"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/categories",
+    "source": "categories.py",
+    "handler": "create_category"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/categories/:id",
+    "source": "categories.py",
+    "handler": "update_category"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/categories/:id",
+    "source": "categories.py",
+    "handler": "delete_category"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/categories/:id/status",
+    "source": "categories.py",
+    "handler": "update_category_status"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/checkouts/initiate",
+    "source": "checkouts.py",
+    "handler": "initiate_checkout"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/checkouts/:checkout_id/apply-coupon",
+    "source": "checkouts.py",
+    "handler": "apply_coupon_code"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/checkouts/:checkout_id/complete",
+    "source": "checkouts.py",
+    "handler": "complete_checkout_session"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/register",
+    "source": "auth.py",
+    "handler": "register"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "source": "auth.py",
+    "handler": "login"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/otp/request",
+    "source": "auth.py",
+    "handler": "request_otp"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/otp/verify",
+    "source": "auth.py",
+    "handler": "verify_otp"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/refresh",
+    "source": "auth.py",
+    "handler": "refresh"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/logout",
+    "source": "auth.py",
+    "handler": "logout"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/google",
+    "source": "auth.py",
+    "handler": "google_login"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/session",
+    "source": "auth.py",
+    "handler": "get_session_info"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "source": "auth.py",
+    "handler": "get_current_user_profile"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/contact",
+    "source": "contact.py",
+    "handler": "submit_contact_inquiry"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/health",
+    "source": "health.py",
+    "handler": "check_system_health"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/readiness",
+    "source": "health.py",
+    "handler": "check_system_readiness"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/health/readiness",
+    "source": "health.py",
+    "handler": "check_system_readiness"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/public",
+    "source": "settings.py",
+    "handler": "get_public_settings"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/settings",
+    "source": "settings.py",
+    "handler": "get_admin_settings"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/settings",
+    "source": "settings.py",
+    "handler": "update_admin_settings"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/payments/order/:order_id/initiate",
+    "source": "payments.py",
+    "handler": "initiate_upi_payment"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/payments/order/:order_id/submit-proof",
+    "source": "payments.py",
+    "handler": "submit_payment_proof"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/payments/:payment_id/verify",
+    "source": "payments.py",
+    "handler": "verify_payment_proof_admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/payments/order/:order_id",
+    "source": "payments.py",
+    "handler": "get_payment_by_order_id_admin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/from-checkout/:checkout_id",
+    "source": "orders.py",
+    "handler": "create_order_from_checkout"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/me",
+    "source": "orders.py",
+    "handler": "get_my_order_history"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/orders/reports/export",
+    "source": "orders.py",
+    "handler": "export_admin_orders_report"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/:id",
+    "source": "orders.py",
+    "handler": "get_order_by_id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/orders/:id/cancel",
+    "source": "orders.py",
+    "handler": "cancel_order"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/orders/:id/invoice",
+    "source": "orders.py",
+    "handler": "get_order_invoice"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/orders",
+    "source": "orders.py",
+    "handler": "get_admin_orders"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/orders/:id/status",
+    "source": "orders.py",
+    "handler": "update_order_status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/dashboard",
+    "source": "dashboard.py",
+    "handler": "get_dashboard_analytics"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/customers/me",
+    "source": "customers.py",
+    "handler": "get_my_profile"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/customers/me",
+    "source": "customers.py",
+    "handler": "update_my_profile"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/customers/me/addresses",
+    "source": "customers.py",
+    "handler": "add_my_address"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/customers/me/addresses/:address_id",
+    "source": "customers.py",
+    "handler": "update_my_address"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/customers/me/addresses/:address_id",
+    "source": "customers.py",
+    "handler": "delete_my_address"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/customers/me/addresses/:address_id/default",
+    "source": "customers.py",
+    "handler": "set_my_default_address"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/customers/me/email",
+    "source": "customers.py",
+    "handler": "update_my_email"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/customers/me/phone",
+    "source": "customers.py",
+    "handler": "update_my_phone"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/customers/me",
+    "source": "customers.py",
+    "handler": "deactivate_my_account"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/customers/:id/status",
+    "source": "customers.py",
+    "handler": "admin_change_customer_status"
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/reviews",
+    "source": "reviews.py",
+    "handler": "submit_product_review"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/reviews/product/:product_id",
+    "source": "reviews.py",
+    "handler": "get_product_reviews"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/reviews/:id",
+    "source": "reviews.py",
+    "handler": "edit_product_review"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/v1/reviews/:id",
+    "source": "reviews.py",
+    "handler": "delete_product_review"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/reviews/summary",
+    "source": "reviews.py",
+    "handler": "get_reviews_summary_admin"
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/reviews",
+    "source": "reviews.py",
+    "handler": "list_all_reviews_admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/reviews/:id/approve",
+    "source": "reviews.py",
+    "handler": "approve_review_admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/reviews/:id/reject",
+    "source": "reviews.py",
+    "handler": "reject_review_admin"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/v1/admin/reviews/:id/reopen",
+    "source": "reviews.py",
+    "handler": "reopen_review_admin"
+  }
+]
