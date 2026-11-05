@@ -34,8 +34,11 @@ import {
   Info,
   FileText,
   FileSpreadsheet,
-  Download
+  Download,
+  Copy,
+  ExternalLink
 } from "lucide-react";
+import { getCourierTrackingUrl } from "@/lib/constants";
 
 export default function AdminOrdersPage() {
   const { data: meData } = useMe();
@@ -70,6 +73,7 @@ export default function AdminOrdersPage() {
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const [copiedTracking, setCopiedTracking] = useState(false);
 
   const handleExportOrders = async (format: "pdf" | "excel") => {
     if (format === "pdf") setIsExportingPDF(true);
@@ -1125,74 +1129,99 @@ export default function AdminOrdersPage() {
                     <Loader2 className="w-5 h-5 animate-spin text-burnishedGold" />
                   </div>
                 ) : shipmentRes.data?.data ? (
-                  /* Shipment exists - show timeline and milestones form */
+                  /* Shipment exists - show Courier, Tracking ID, Copy and Track button */
                   <div className="space-y-4 text-xs">
-                    <div className="bg-[#FAF9F6] border border-[#C49A45]/15 rounded p-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <span className="text-[10px] text-indianInk/50 block uppercase">Carrier Name</span>
-                        <span className="font-bold text-[#1E352F] uppercase tracking-wide">{shipmentRes.data.data.carrier_name}</span>
+                    <div className="bg-[#FAF9F6] border border-[#C49A45]/20 rounded-lg p-4 space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">Courier Service</span>
+                          <span className="font-bold text-[#0F3D2E] text-sm uppercase tracking-wide">
+                            {shipmentRes.data.data.carrier_name}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">Delivery Status</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-[#C49A45] border border-[#C49A45]/30">
+                            {shipmentRes.data.data.status === "shipped" || shipmentRes.data.data.status === "pending"
+                              ? "Dispatched"
+                              : shipmentRes.data.data.status}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[10px] text-indianInk/50 block uppercase">Tracking Number</span>
-                        <code className="font-mono font-bold text-indianInk bg-white border border-indianInk/10 px-1.5 py-0.5 rounded text-[10px]">
-                          {shipmentRes.data.data.tracking_number}
-                        </code>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-indianInk/50 block uppercase">Shipment Status</span>
-                        <span className="font-bold text-[#1E352F] uppercase tracking-wider">{shipmentRes.data.data.status.replace(/_/g, " ")}</span>
-                      </div>
-                    </div>
 
-                    {/* Timeline */}
-                    <div className="relative border-l border-burnishedGold/25 ml-3 pl-5 space-y-4 py-2">
-                      {shipmentRes.data.data.timeline.map((event: any, index: number) => {
-                        const isLatest = index === shipmentRes.data.data.timeline.length - 1;
-                        return (
-                          <div key={index} className="relative">
-                            <span className={`absolute -left-[27px] top-1.5 flex items-center justify-center w-3.5 h-3.5 rounded-full border bg-white ${
-                              isLatest ? "border-[#C49A45] text-[#C49A45]" : "border-indianInk/20"
-                            }`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${isLatest ? "bg-[#C49A45]" : "bg-indianInk/30"}`} />
-                            </span>
-                            <div className="space-y-0.5">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                <span className={`font-serif text-[11px] font-bold uppercase ${isLatest ? "text-deodharForest" : "text-indianInk/60"}`}>
-                                  {event.status.replace(/_/g, " ")}
-                                </span>
-                                <span className="text-[9px] text-indianInk/40">
-                                  {new Date(event.timestamp).toLocaleString("en-IN")}
-                                </span>
-                              </div>
-                              <p className="text-indianInk/70">{event.message}</p>
-                              {event.location && (
-                                <p className="text-[9px] text-indianInk/50 flex items-center gap-0.5">
-                                  <MapPin className="w-2.5 h-2.5 text-red-500" /> Location: {event.location}
-                                </p>
+                      <div className="pt-2 border-t border-indianInk/10">
+                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase mb-1">
+                          Consignment / Tracking ID
+                        </span>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <code className="font-mono font-bold text-indianInk bg-white border border-[#C49A45]/20 px-2.5 py-1.5 rounded text-xs select-all">
+                            {shipmentRes.data.data.tracking_number}
+                          </code>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(shipmentRes.data.data.tracking_number);
+                                setCopiedTracking(true);
+                                setTimeout(() => setCopiedTracking(false), 2000);
+                              }}
+                              className="flex items-center gap-1 px-2.5 py-1.5 border border-[#C49A45]/30 hover:border-[#C49A45] bg-white text-[#0F3D2E] rounded text-xs font-bold uppercase tracking-wider transition"
+                            >
+                              {copiedTracking ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span className="text-emerald-700">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5 text-[#C49A45]" />
+                                  <span>Copy ID</span>
+                                </>
                               )}
-                            </div>
+                            </button>
+                            <a
+                              href={getCourierTrackingUrl(shipmentRes.data.data.carrier_name)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 px-3 py-1.5 bg-[#0F3D2E] hover:bg-[#15543F] text-richCream rounded text-xs font-bold uppercase tracking-wider transition"
+                            >
+                              <span>Track</span>
+                              <ExternalLink className="w-3 h-3 text-[#C89B3C]" />
+                            </a>
                           </div>
-                        );
-                      })}
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Guidance redirection note */}
-                    <div className="p-3 border border-[#C49A45]/20 bg-[#FAF9F6] text-indianInk rounded font-medium text-[11px] leading-relaxed flex items-start gap-2 mt-2">
-                      <AlertCircle className="w-4 h-4 text-burnishedGold shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold block text-deodharForest mb-0.5">Shipment Milestones</span>
-                        Tracking updates and milestone logging are managed exclusively on the <a href="/admin/shipments" className="underline font-bold text-[#C49A45] hover:text-[#C49A45]/80">Shipments dashboard</a>.
+                    <div className="p-3 border border-[#C49A45]/20 bg-[#FAF9F6] text-indianInk rounded font-medium text-[11px] leading-relaxed flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <Truck className="w-4 h-4 text-[#C49A45] shrink-0 mt-0.5" />
+                        <span>Manage dispatches, mark deliveries or returns on the </span>
                       </div>
+                      <Link
+                        href="/admin/shipments"
+                        className="underline font-bold text-[#0F3D2E] hover:text-[#C49A45] whitespace-nowrap"
+                      >
+                        Shipments Dashboard →
+                      </Link>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-3 text-xs">
-                    <div className="p-3 border border-[#C49A45]/20 bg-[#FAF9F6] text-indianInk rounded font-medium text-[11px] leading-relaxed flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-burnishedGold shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-bold block text-deodharForest mb-0.5">No Shipment Registered</span>
-                        No shipment record exists for this order. Please navigate to the <a href="/admin/shipments" className="underline font-bold text-[#C49A45] hover:text-[#C49A45]/80">Shipments dashboard</a> to register dispatches and initiate logistics routing.
+                    <div className="p-3 border border-[#C49A45]/20 bg-[#FAF9F6] text-indianInk rounded font-medium text-[11px] leading-relaxed flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-burnishedGold shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block text-deodharForest mb-0.5">Not Dispatched Yet</span>
+                          <span>No courier shipment registered. Pack the product and dispatch via ST Courier or The Professional Couriers.</span>
+                        </div>
                       </div>
+                      <Link
+                        href="/admin/shipments"
+                        className="px-3 py-1.5 bg-[#0F3D2E] text-white rounded text-xs font-bold uppercase whitespace-nowrap tracking-wider hover:bg-[#15543F]"
+                      >
+                        Dispatch →
+                      </Link>
                     </div>
                   </div>
                 )}

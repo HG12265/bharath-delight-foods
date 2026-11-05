@@ -16,25 +16,21 @@ import {
   RefreshCw,
   Plus,
   Truck,
-  MapPin,
-  Clipboard,
   Eye,
   X,
   Edit2,
   AlertCircle,
-  Calendar,
   Trash2,
-  Lock,
   User,
   Info,
   Check,
-  CheckCircle2,
   Search,
   Filter,
-  ArrowRight,
-  ShieldCheck,
-  FolderOpen
+  Copy,
+  ExternalLink,
+  PackageCheck,
 } from "lucide-react";
+import { COURIER_SERVICES, getCourierTrackingUrl } from "@/lib/constants";
 
 export default function AdminShipmentsPage() {
   const { data: meData } = useMe();
@@ -46,9 +42,16 @@ export default function AdminShipmentsPage() {
   // Page States
   const [selectedShipmentId, setSelectedShipmentId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   // Data fetching
-  const { data: shipmentsRes, isPending: isShipmentsPending, refetch, isRefetching } = useAdminShipments();
+  const {
+    data: shipmentsRes,
+    isPending: isShipmentsPending,
+    refetch,
+    isRefetching,
+  } = useAdminShipments();
   const { data: ordersRes } = useAdminOrders(undefined, { enabled: isCreateModalOpen });
 
   // Mutations
@@ -67,26 +70,17 @@ export default function AdminShipmentsPage() {
   // Create Form States
   const [createForm, setCreateForm] = useState({
     orderId: "",
-    carrierName: "",
+    carrierName: "ST Courier",
     trackingNumber: "",
-    awbNumber: "",
-    estimatedDeliveryDate: ""
   });
   const [createError, setCreateError] = useState("");
 
   // Edit Carrier Info States
   const [isEditingCarrier, setIsEditingCarrier] = useState(false);
   const [editForm, setEditForm] = useState({
-    carrierName: "",
+    carrierName: "ST Courier",
     trackingNumber: "",
-    awbNumber: "",
-    estimatedDeliveryDate: ""
   });
-
-  // Timeline Milestone States
-  const [milestoneStatus, setMilestoneStatus] = useState("packed");
-  const [milestoneLocation, setMilestoneLocation] = useState("");
-  const [milestoneMessage, setMilestoneMessage] = useState("");
 
   // Memoized lists
   const shipments = useMemo(() => shipmentsRes?.data || [], [shipmentsRes]);
@@ -101,7 +95,7 @@ export default function AdminShipmentsPage() {
   // Dynamic order details fetch inside drawer
   const { data: orderDetailsRes, isPending: isOrderPending } = useOrderDetails(
     selectedShipment?.order_id || "",
-    { enabled: !!selectedShipmentId }
+    { enabled: !!selectedShipmentId },
   );
   const orderDetails = orderDetailsRes?.data;
 
@@ -111,20 +105,25 @@ export default function AdminShipmentsPage() {
       (order) =>
         order.order_status === "confirmed" &&
         order.payment_status === "paid" &&
-        !shipments.some((s) => s.order_id === order.id)
+        !shipments.some((s) => s.order_id === order.id),
     );
   }, [orders, shipments]);
+
+  // Copy tracking ID helper
+  const handleCopyTracking = (id: string, trackingNumber: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!trackingNumber) return;
+    navigator.clipboard.writeText(trackingNumber);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   // Handle syncing edit fields when editing carrier info is opened
   const startEditingCarrier = () => {
     if (!selectedShipment) return;
     setEditForm({
-      carrierName: selectedShipment.carrier_name,
+      carrierName: selectedShipment.carrier_name || "ST Courier",
       trackingNumber: selectedShipment.tracking_number,
-      awbNumber: selectedShipment.awb_number || "",
-      estimatedDeliveryDate: selectedShipment.estimated_delivery_date
-        ? new Date(selectedShipment.estimated_delivery_date).toISOString().split("T")[0]
-        : ""
     });
     setIsEditingCarrier(true);
   };
@@ -132,28 +131,22 @@ export default function AdminShipmentsPage() {
   const handleSaveCarrierEdit = async () => {
     if (!selectedShipment) return;
     if (!editForm.carrierName.trim() || !editForm.trackingNumber.trim()) {
-      alert("Carrier Name and Tracking Number are required.");
+      alert("Courier Service and Tracking Number are required.");
       return;
     }
 
     try {
-      const payload: any = {
-        carrier_name: editForm.carrierName.trim(),
-        tracking_number: editForm.trackingNumber.trim(),
-        awb_number: editForm.awbNumber.trim() || null,
-        estimated_delivery_date: editForm.estimatedDeliveryDate
-          ? new Date(editForm.estimatedDeliveryDate).toISOString()
-          : null
-      };
-
       await editShipmentMutation.mutateAsync({
         id: selectedShipment.id,
-        payload
+        payload: {
+          carrier_name: editForm.carrierName.trim(),
+          tracking_number: editForm.trackingNumber.trim(),
+        },
       });
       setIsEditingCarrier(false);
       refetch();
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Failed to update shipment carrier info.");
+      alert(err?.response?.data?.message || "Failed to update shipment courier info.");
     }
   };
 
@@ -167,75 +160,73 @@ export default function AdminShipmentsPage() {
       return;
     }
     if (!createForm.carrierName.trim()) {
-      setCreateError("Carrier Name is required.");
+      setCreateError("Please select a courier service.");
       return;
     }
     if (!createForm.trackingNumber.trim()) {
-      setCreateError("Tracking Number is required.");
+      setCreateError("Tracking Number / Consignment ID is required.");
       return;
     }
 
     try {
-      const payload: any = {
-        carrier_name: createForm.carrierName.trim(),
-        tracking_number: createForm.trackingNumber.trim(),
-        awb_number: createForm.awbNumber.trim() || undefined
-      };
-
-      if (createForm.estimatedDeliveryDate) {
-        payload.estimated_delivery_date = new Date(createForm.estimatedDeliveryDate).toISOString();
-      }
-
       await createShipmentMutation.mutateAsync({
         orderId: createForm.orderId,
-        payload
+        payload: {
+          carrier_name: createForm.carrierName.trim(),
+          tracking_number: createForm.trackingNumber.trim(),
+        },
       });
 
       // Clear form and close
       setCreateForm({
         orderId: "",
-        carrierName: "",
+        carrierName: "ST Courier",
         trackingNumber: "",
-        awbNumber: "",
-        estimatedDeliveryDate: ""
       });
       setIsCreateModalOpen(false);
       refetch();
     } catch (err: any) {
-      setCreateError(err?.response?.data?.message || "Failed to create shipment dispatch.");
+      setCreateError(err?.response?.data?.message || "Failed to register shipment dispatch.");
     }
   };
 
-  // Add timeline milestone transit log
-  const handleAddMilestone = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Handle status update: Delivered or Returned
+  const handleUpdateStatus = async (status: "delivered" | "returned") => {
     if (!selectedShipment) return;
-    if (!milestoneMessage.trim()) {
-      alert("Milestone message log is required.");
-      return;
-    }
+    const confirmMessage =
+      status === "delivered"
+        ? "Confirm marking this order as DELIVERED to the customer?"
+        : "Confirm marking this order as RETURNED to sender?";
+    if (!confirm(confirmMessage)) return;
 
+    setIsUpdatingStatus(true);
     try {
       await updateStatusMutation.mutateAsync({
         id: selectedShipment.id,
         payload: {
-          status: milestoneStatus as any,
-          message: milestoneMessage.trim(),
-          location: milestoneLocation.trim() || undefined
-        }
+          status,
+          message:
+            status === "delivered"
+              ? `Package successfully delivered via ${selectedShipment.carrier_name}.`
+              : `Package returned to sender via ${selectedShipment.carrier_name}.`,
+        },
       });
-      setMilestoneMessage("");
-      setMilestoneLocation("");
       refetch();
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Failed to log milestone stop.");
+      alert(err?.response?.data?.message || `Failed to update status to ${status}.`);
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
   // Cancel shipment status overrides (Admin only)
   const handleCancelShipment = async () => {
     if (!selectedShipment) return;
-    if (!confirm("Are you sure you want to administratively CANCEL this shipment? This will set fulfillment status to cancelled.")) {
+    if (
+      !confirm(
+        "Are you sure you want to administratively CANCEL this shipment? This will cancel the dispatch record.",
+      )
+    ) {
       return;
     }
 
@@ -250,7 +241,11 @@ export default function AdminShipmentsPage() {
   // Delete shipment (Soft-delete: Admin only)
   const handleDeleteShipment = async () => {
     if (!selectedShipment) return;
-    if (!confirm("CRITICAL: Are you sure you want to DELETE this shipment record from the active registry? This soft-deletes the shipment doc.")) {
+    if (
+      !confirm(
+        "CRITICAL: Are you sure you want to DELETE this shipment record from the active registry?",
+      )
+    ) {
       return;
     }
 
@@ -267,8 +262,12 @@ export default function AdminShipmentsPage() {
   const filteredShipments = useMemo(() => {
     return shipments.filter((shipment) => {
       // Status filter
-      if (statusFilter !== "all" && shipment.status !== statusFilter) {
-        return false;
+      if (statusFilter !== "all") {
+        if (statusFilter === "shipped") {
+          if (!["shipped", "pending"].includes(shipment.status)) return false;
+        } else if (shipment.status !== statusFilter) {
+          return false;
+        }
       }
 
       // Search by order number
@@ -287,10 +286,9 @@ export default function AdminShipmentsPage() {
         }
       }
 
-      // Search by Customer Email (We look up using cached order info snapshot or customer details if loaded)
+      // Search by Customer Email
       if (searchEmail.trim()) {
         const eQuery = searchEmail.toLowerCase().trim();
-        // Since we retrieve orders to check customer emails
         const matchingOrder = orders.find((o) => o.id === shipment.order_id);
         const email = matchingOrder?.customer_snapshot.email || "";
         if (!email.toLowerCase().includes(eQuery)) {
@@ -306,38 +304,29 @@ export default function AdminShipmentsPage() {
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "INR"
+      currency: "INR",
     }).format(val);
   };
 
   const getShipmentBadge = (status: string) => {
-    let classes = "inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ";
+    let classes =
+      "inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ";
     switch (status) {
       case "delivered":
         classes += "bg-green-50 text-[#2E7D32] border-[#2E7D32]/20";
-        break;
-      case "shipped":
-        classes += "bg-blue-50 text-[#1565C0] border-[#1565C0]/20";
-        break;
-      case "reached_hub":
-        classes += "bg-purple-50 text-purple-700 border-purple-250/20";
-        break;
-      case "out_for_delivery":
-        classes += "bg-indigo-50 text-indigo-700 border-indigo-200";
-        break;
-      case "packed":
-        classes += "bg-amber-50 text-[#C49A45] border-[#C49A45]/20";
-        break;
-      case "cancelled":
-        classes += "bg-red-50 text-[#C62828] border-[#C62828]/20";
-        break;
+        return <span className={classes}>Delivered</span>;
       case "returned":
+        classes += "bg-red-50 text-[#C62828] border-[#C62828]/20";
+        return <span className={classes}>Returned</span>;
+      case "cancelled":
         classes += "bg-gray-50 text-gray-700 border-gray-200";
-        break;
+        return <span className={classes}>Cancelled</span>;
+      case "shipped":
+      case "pending":
       default:
-        classes += "bg-yellow-50 text-yellow-800 border-yellow-200";
+        classes += "bg-amber-50 text-[#C49A45] border-[#C49A45]/30";
+        return <span className={classes}>Dispatched</span>;
     }
-    return <span className={classes}>{status.replace(/_/g, " ")}</span>;
   };
 
   const formatDateTime = (val?: string) => {
@@ -347,7 +336,7 @@ export default function AdminShipmentsPage() {
       month: "short",
       year: "numeric",
       hour: "2-digit",
-      minute: "2-digit"
+      minute: "2-digit",
     });
   };
 
@@ -355,7 +344,9 @@ export default function AdminShipmentsPage() {
     return (
       <div className="flex flex-col justify-center items-center py-32 space-y-4">
         <Loader2 className="w-10 h-10 animate-spin text-[#C49A45]" />
-        <p className="font-sans text-xs text-indianInk/50 tracking-widest uppercase">Loading logistics registries...</p>
+        <p className="font-sans text-xs text-indianInk/50 tracking-widest uppercase">
+          Loading logistics dispatches...
+        </p>
       </div>
     );
   }
@@ -366,28 +357,26 @@ export default function AdminShipmentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#C49A45]/15 pb-4">
         <div>
           <h1 className="font-serif text-3xl font-bold text-[#1E352F]">
-            Shipments & Logistics
+            Shipment Dispatches
           </h1>
           <p className="font-sans text-xs text-indianInk/60 mt-1">
-            {isWarehouse
-              ? "Operations: Dispatch manual couriers, log sorting milestones, and update order transits."
-              : "Administration: Monitor dispatches, cancel labels, edit carrier records, and oversee logistics timelines."}
+            Dispatch orders via ST Courier or The Professional Couriers, copy tracking IDs, and open courier tracking portals.
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => refetch()}
             disabled={isRefetching}
-            className="flex items-center justify-center gap-2 px-3 py-2 border border-[#C49A45]/30 hover:border-[#C49A45] bg-white text-[#1E352F] font-sans text-xs font-bold uppercase tracking-widest rounded transition disabled:opacity-50 font-semibold"
+            className="flex items-center justify-center gap-2 px-3 py-2 border border-[#C49A45]/30 hover:border-[#C49A45] bg-white text-[#1E352F] font-sans text-xs font-bold uppercase tracking-widest rounded transition disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? "animate-spin" : ""}`} />
             Refresh
           </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#1E352F] hover:bg-[#1E352F]/90 text-white font-sans text-xs font-bold uppercase tracking-widest rounded transition shadow-md font-semibold"
+            className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#0F3D2E] hover:bg-[#15543F] text-richCream font-sans text-xs font-bold uppercase tracking-widest rounded transition shadow-md"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-[#C89B3C]" />
             Dispatch Shipment
           </button>
         </div>
@@ -436,13 +425,11 @@ export default function AdminShipmentsPage() {
               <Filter className="w-3 h-3" /> Filter Status:
             </span>
             {[
-              { status: "all", label: "All Shipments" },
-              { status: "packed", label: "Packed" },
-              { status: "shipped", label: "Shipped" },
-              { status: "out_for_delivery", label: "Out For Delivery" },
+              { status: "all", label: "All Dispatches" },
+              { status: "shipped", label: "Dispatched" },
               { status: "delivered", label: "Delivered" },
               { status: "returned", label: "Returned" },
-              { status: "cancelled", label: "Cancelled" }
+              { status: "cancelled", label: "Cancelled" },
             ].map((p) => {
               const active = statusFilter === p.status;
               return (
@@ -472,14 +459,13 @@ export default function AdminShipmentsPage() {
               <table className="w-full text-left font-sans text-xs border-collapse">
                 <thead>
                   <tr className="bg-[#FAF9F6] border-b border-[#C49A45]/10 text-indianInk/50">
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[140px]">Shipment ID</th>
                     <th className="px-4 py-3 font-bold uppercase tracking-widest w-[110px]">Order No</th>
                     <th className="px-4 py-3 font-bold uppercase tracking-widest w-[160px]">Customer</th>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[130px]">Carrier</th>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[160px]">Tracking Number</th>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[120px]">Status</th>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[120px]">Dispatched At</th>
-                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[80px] text-right">Actions</th>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[180px]">Courier Service</th>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[220px]">Tracking Number / ID</th>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[110px]">Status</th>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[130px]">Dispatched At</th>
+                    <th className="px-4 py-3 font-bold uppercase tracking-widest w-[90px] text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-indianInk/5">
@@ -487,7 +473,9 @@ export default function AdminShipmentsPage() {
                     const matchedOrder = orders.find((o) => o.id === shipment.order_id);
                     const customerName = matchedOrder
                       ? `${matchedOrder.customer_snapshot.first_name || ""} ${matchedOrder.customer_snapshot.last_name || ""}`.trim()
-                      : "Guest Customer";
+                      : "Customer";
+                    const trackingUrl = getCourierTrackingUrl(shipment.carrier_name);
+                    const isCopied = copiedId === shipment.id;
 
                     return (
                       <tr
@@ -497,22 +485,47 @@ export default function AdminShipmentsPage() {
                           index % 2 === 1 ? "bg-indianInk/[0.015]" : "bg-white"
                         } hover:bg-[#F2ECE4]/40`}
                       >
-                        <td className="px-4 py-3.5 font-mono text-[10px] text-indianInk/60">
-                          {shipment.id.substring(0, 10)}...
-                        </td>
                         <td className="px-4 py-3.5 font-bold text-[#1E352F]">
                           #{shipment.order_number}
                         </td>
                         <td className="px-4 py-3.5 font-semibold text-indianInk">
                           {customerName}
                         </td>
-                        <td className="px-4 py-3.5 text-indianInk/80 uppercase font-medium">
+                        <td className="px-4 py-3.5 font-bold text-[#0F3D2E] uppercase">
                           {shipment.carrier_name}
                         </td>
-                        <td className="px-4 py-3.5 font-mono text-[10px] text-indianInk">
-                          <div className="flex items-center gap-1.5 font-semibold">
-                            <Clipboard className="w-3.5 h-3.5 text-[#C49A45]/70" />
-                            <span>{shipment.tracking_number}</span>
+                        <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-2">
+                            <code className="font-mono text-[11px] font-bold text-indianInk bg-[#FAF9F6] border border-[#C49A45]/20 px-2 py-1 rounded select-all">
+                              {shipment.tracking_number}
+                            </code>
+
+                            {/* Copy Button */}
+                            <button
+                              onClick={(e) =>
+                                handleCopyTracking(shipment.id, shipment.tracking_number, e)
+                              }
+                              className="p-1 hover:bg-[#FAF9F6] border border-[#C49A45]/20 hover:border-[#C49A45] rounded text-deodharForest transition"
+                              title="Copy Tracking ID"
+                            >
+                              {isCopied ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5 text-[#C49A45]" />
+                              )}
+                            </button>
+
+                            {/* Direct Track Button */}
+                            <a
+                              href={trackingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 px-2 py-1 bg-[#0F3D2E] hover:bg-[#15543F] text-richCream rounded text-[10px] font-bold uppercase tracking-wider transition"
+                              title="Track on Courier Website"
+                            >
+                              <span>Track</span>
+                              <ExternalLink className="w-3 h-3 text-[#C89B3C]" />
+                            </a>
                           </div>
                         </td>
                         <td className="px-4 py-3.5">
@@ -524,8 +537,8 @@ export default function AdminShipmentsPage() {
                         <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => setSelectedShipmentId(shipment.id)}
-                            className="p-1 text-deodharForest hover:bg-[#FAF9F6] border border-[#C49A45]/20 hover:border-[#C49A45] rounded transition"
-                            title="Open Logistics Details"
+                            className="p-1.5 text-deodharForest hover:bg-[#FAF9F6] border border-[#C49A45]/20 hover:border-[#C49A45] rounded transition"
+                            title="Open Dispatch Details"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
@@ -544,7 +557,9 @@ export default function AdminShipmentsPage() {
               const matchedOrder = orders.find((o) => o.id === shipment.order_id);
               const customerName = matchedOrder
                 ? `${matchedOrder.customer_snapshot.first_name || ""} ${matchedOrder.customer_snapshot.last_name || ""}`.trim()
-                : "Guest Customer";
+                : "Customer";
+              const trackingUrl = getCourierTrackingUrl(shipment.carrier_name);
+              const isCopied = copiedId === shipment.id;
 
               return (
                 <div
@@ -553,28 +568,55 @@ export default function AdminShipmentsPage() {
                   className="bg-white border border-[#C49A45]/15 rounded p-4 shadow-sm hover:border-[#C49A45] transition-colors cursor-pointer space-y-3"
                 >
                   <div className="flex justify-between items-center">
-                    <span className="font-sans font-bold text-xs text-[#1E352F]">#{shipment.order_number}</span>
-                    <span className="font-mono text-[9px] text-indianInk/40">ID: {shipment.id.substring(0, 10)}</span>
+                    <span className="font-sans font-bold text-xs text-[#1E352F]">
+                      Order #{shipment.order_number}
+                    </span>
+                    {getShipmentBadge(shipment.status)}
                   </div>
 
-                  <div className="text-[11px] space-y-1 text-indianInk/70">
+                  <div className="text-[11px] space-y-1.5 text-indianInk/70">
                     <div className="flex justify-between">
                       <span>Customer:</span>
                       <span className="font-semibold text-indianInk">{customerName}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Carrier:</span>
-                      <span className="font-bold text-indianInk uppercase">{shipment.carrier_name}</span>
+                      <span>Courier:</span>
+                      <span className="font-bold text-[#0F3D2E] uppercase">{shipment.carrier_name}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Tracking:</span>
-                      <span className="font-mono font-bold text-indianInk">{shipment.tracking_number}</span>
+                    <div className="flex justify-between items-center pt-1" onClick={(e) => e.stopPropagation()}>
+                      <span className="font-mono font-bold text-indianInk bg-[#FAF9F6] border border-[#C49A45]/20 px-2 py-0.5 rounded text-[11px]">
+                        {shipment.tracking_number}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) =>
+                            handleCopyTracking(shipment.id, shipment.tracking_number, e)
+                          }
+                          className="px-2 py-1 border border-[#C49A45]/30 rounded text-[10px] font-bold text-[#0F3D2E] hover:bg-[#FAF9F6] flex items-center gap-1"
+                        >
+                          {isCopied ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span>Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 text-[#C49A45]" />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
+                        <a
+                          href={trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 bg-[#0F3D2E] text-white rounded text-[10px] font-bold uppercase flex items-center gap-1"
+                        >
+                          <span>Track</span>
+                          <ExternalLink className="w-3 h-3 text-[#C89B3C]" />
+                        </a>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="border-t border-[#C49A45]/10 pt-2 flex justify-between items-center">
-                    {getShipmentBadge(shipment.status)}
-                    <span className="text-[9px] text-indianInk/40">{new Date(shipment.created_at).toLocaleDateString("en-IN")}</span>
                   </div>
                 </div>
               );
@@ -589,7 +631,7 @@ export default function AdminShipmentsPage() {
           </div>
           <h3 className="font-serif text-lg font-bold text-deodharForest">No Shipment Records</h3>
           <p className="font-sans text-xs text-indianInk/60 leading-relaxed max-w-sm mx-auto">
-            There are no logistics shipments in the registry matching your parameters. Clear search or dispatch a new order.
+            There are no dispatched orders matching your query parameters. Clear your filter or click Dispatch Shipment to dispatch a new order.
           </p>
         </div>
       )}
@@ -612,10 +654,13 @@ export default function AdminShipmentsPage() {
             <div className="bg-[#1E352F] text-white px-6 py-4 flex justify-between items-center">
               <div>
                 <h2 className="font-serif text-xl font-bold flex items-center gap-2">
-                  Shipment Details
+                  Dispatch Details
                 </h2>
                 <p className="font-sans text-[10px] uppercase tracking-wider text-white/60 mt-0.5 font-bold">
-                  Order #{selectedShipment.order_number} | Status: {selectedShipment.status.replace(/_/g, " ").toUpperCase()}
+                  Order #{selectedShipment.order_number} | Status:{" "}
+                  {selectedShipment.status === "shipped" || selectedShipment.status === "pending"
+                    ? "DISPATCHED"
+                    : selectedShipment.status.toUpperCase()}
                 </p>
               </div>
               <button
@@ -631,168 +676,52 @@ export default function AdminShipmentsPage() {
 
             {/* Scrollable Body */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 font-sans text-xs text-indianInk">
-              
-              {/* Visual Timeline Stepper */}
-              {!["cancelled", "returned", "failed"].includes(selectedShipment.status) && (
-                <div className="bg-white border border-[#C49A45]/15 rounded p-4 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    {["packed", "shipped", "out_for_delivery", "delivered"].map((step, idx, arr) => {
-                      const stepLabels: Record<string, string> = {
-                        packed: "Packed",
-                        shipped: "Shipped",
-                        out_for_delivery: "Out For Delivery",
-                        delivered: "Delivered",
-                      };
-
-                      const statusIndex = arr.indexOf(selectedShipment.status);
-                      const isCompleted = idx <= statusIndex && statusIndex !== -1;
-                      const isCurrent = idx === statusIndex;
-
-                      return (
-                        <React.Fragment key={step}>
-                          {/* Step Circle */}
-                          <div className="flex flex-col items-center flex-1 relative">
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all ${
-                              isCompleted 
-                                ? "bg-[#1E352F] border-[#1E352F] text-white" 
-                                : "bg-white border-indianInk/20 text-indianInk/40"
-                            } ${isCurrent ? "ring-4 ring-[#C49A45]/20 font-bold" : ""}`}>
-                              {isCompleted && !isCurrent ? (
-                                <Check className="w-4 h-4" />
-                              ) : (
-                                <span className="text-[10px]">{idx + 1}</span>
-                              )}
-                            </div>
-                            <span className={`text-[10px] mt-2 font-semibold text-center uppercase tracking-wider ${
-                              isCurrent 
-                                ? "text-[#1E352F] font-bold" 
-                                : isCompleted 
-                                  ? "text-indianInk font-medium" 
-                                  : "text-indianInk/40"
-                            }`}>
-                              {stepLabels[step]}
-                            </span>
-                          </div>
-
-                          {/* Line between steps */}
-                          {idx < arr.length - 1 && (
-                            <div className={`h-0.5 flex-1 self-start mt-3.5 -mx-4 transition-all ${
-                              (statusIndex !== -1 && idx < statusIndex) ? "bg-[#1E352F]" : "bg-indianInk/10"
-                            }`} />
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Order Info Section */}
-              <div className="bg-white border border-[#C49A45]/15 rounded p-4 space-y-3 shadow-sm">
-                <h4 className="font-serif text-sm font-bold text-deodharForest flex items-center gap-1.5 border-b border-indianInk/5 pb-2">
-                  <User className="w-4 h-4 text-[#C49A45]" /> Recipient Delivery Information
-                </h4>
-                {isOrderPending ? (
-                  <div className="flex items-center gap-2 py-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-[#C49A45]" />
-                    <span className="text-[10px] text-indianInk/50 italic">Retrieving customer database records...</span>
-                  </div>
-                ) : orderDetails ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <div>
-                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">Customer Name</span>
-                        <span className="font-bold text-indianInk">
-                          {orderDetails.customer_snapshot.first_name || ""} {orderDetails.customer_snapshot.last_name || ""}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">Email</span>
-                        <span className="font-mono text-indianInk">{orderDetails.customer_snapshot.email}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">Phone</span>
-                        <span className="font-sans text-indianInk">{orderDetails.customer_snapshot.phone || "Not listed"}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">Shipping Destination</span>
-                      <p className="font-bold text-indianInk">{orderDetails.shipping_address_snapshot.full_name}</p>
-                      <p className="text-indianInk mt-0.5 leading-relaxed">
-                        {orderDetails.shipping_address_snapshot.address_line1}
-                        {orderDetails.shipping_address_snapshot.address_line2 && `, ${orderDetails.shipping_address_snapshot.address_line2}`}
-                      </p>
-                      <p className="text-indianInk font-medium">
-                        {orderDetails.shipping_address_snapshot.city}, {orderDetails.shipping_address_snapshot.state} - {orderDetails.shipping_address_snapshot.pincode}
-                      </p>
-                      <p className="text-[10px] text-indianInk/40 mt-0.5">{orderDetails.shipping_address_snapshot.country}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-red-500 text-xs italic flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    Failed to sync database order details. Order snapshot might have been archived.
-                  </div>
-                )}
-              </div>
-
-              {/* Carrier Info Section */}
-              <div className="bg-white border border-[#C49A45]/15 rounded p-4 space-y-3 shadow-sm">
-                <div className="flex justify-between items-center border-b border-indianInk/5 pb-2">
+              {/* Courier & Tracking Section */}
+              <div className="bg-white border border-[#C49A45]/20 rounded-lg p-5 space-y-4 shadow-sm">
+                <div className="flex justify-between items-center border-b border-indianInk/5 pb-3">
                   <h4 className="font-serif text-sm font-bold text-deodharForest flex items-center gap-1.5">
-                    <Truck className="w-4 h-4 text-[#C49A45]" /> Carrier & Tracking Routing
+                    <Truck className="w-4 h-4 text-[#C49A45]" /> Third-Party Courier Routing
                   </h4>
                   {isAdmin && !isEditingCarrier && (
                     <button
                       onClick={startEditingCarrier}
                       className="flex items-center gap-1 text-[10px] uppercase font-bold text-[#C49A45] hover:underline"
                     >
-                      <Edit2 className="w-3 h-3" /> Edit Info
+                      <Edit2 className="w-3 h-3" /> Edit Courier Info
                     </button>
                   )}
                 </div>
 
                 {isEditingCarrier ? (
-                  <div className="space-y-3 pt-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-indianInk/50">Carrier Name</label>
-                        <input
-                          type="text"
-                          value={editForm.carrierName}
-                          onChange={(e) => setEditForm({ ...editForm, carrierName: e.target.value })}
-                          className="w-full mt-1 border border-indianInk/15 rounded px-2.5 py-1.5 text-xs bg-[#FAF9F6]/30"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-indianInk/50">Tracking Number</label>
-                        <input
-                          type="text"
-                          value={editForm.trackingNumber}
-                          onChange={(e) => setEditForm({ ...editForm, trackingNumber: e.target.value })}
-                          className="w-full mt-1 border border-indianInk/15 rounded px-2.5 py-1.5 text-xs bg-[#FAF9F6]/30"
-                        />
-                      </div>
+                  <div className="space-y-4 pt-1">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-indianInk/60 block mb-1">
+                        Select Courier Service
+                      </label>
+                      <select
+                        value={editForm.carrierName}
+                        onChange={(e) => setEditForm({ ...editForm, carrierName: e.target.value })}
+                        className="w-full border border-indianInk/20 rounded p-2 text-xs font-semibold focus:border-[#C49A45] focus:outline-none bg-white"
+                      >
+                        {COURIER_SERVICES.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-indianInk/50">AWB Number (Optional)</label>
-                        <input
-                          type="text"
-                          value={editForm.awbNumber}
-                          onChange={(e) => setEditForm({ ...editForm, awbNumber: e.target.value })}
-                          className="w-full mt-1 border border-indianInk/15 rounded px-2.5 py-1.5 text-xs bg-[#FAF9F6]/30"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-indianInk/50">Estimated Delivery Date</label>
-                        <input
-                          type="date"
-                          value={editForm.estimatedDeliveryDate}
-                          onChange={(e) => setEditForm({ ...editForm, estimatedDeliveryDate: e.target.value })}
-                          className="w-full mt-1 border border-indianInk/15 rounded px-2.5 py-1.5 text-xs bg-[#FAF9F6]/30"
-                        />
-                      </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-indianInk/60 block mb-1">
+                        Tracking Number / Consignment ID
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.trackingNumber}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, trackingNumber: e.target.value })
+                        }
+                        className="w-full border border-indianInk/20 rounded p-2 text-xs font-mono font-bold focus:border-[#C49A45] focus:outline-none bg-white"
+                      />
                     </div>
                     <div className="flex justify-end gap-2 pt-2 border-t border-indianInk/5">
                       <button
@@ -804,190 +733,222 @@ export default function AdminShipmentsPage() {
                       <button
                         onClick={handleSaveCarrierEdit}
                         disabled={editShipmentMutation.isPending}
-                        className="px-3.5 py-1.5 bg-[#1E352F] hover:bg-[#1E352F]/90 text-white rounded font-bold uppercase text-[10px] tracking-wide"
+                        className="px-4 py-1.5 bg-[#0F3D2E] hover:bg-[#15543F] text-white rounded font-bold uppercase text-[10px] tracking-wide"
                       >
                         {editShipmentMutation.isPending ? "Saving..." : "Save Edits"}
                       </button>
                     </div>
                   </div>
                 ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">
+                          Courier Service
+                        </span>
+                        <span className="text-sm font-bold text-[#0F3D2E] uppercase tracking-wide">
+                          {selectedShipment.carrier_name}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">
+                          Dispatched Date
+                        </span>
+                        <span className="font-semibold text-indianInk">
+                          {formatDateTime(selectedShipment.created_at)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Prominent Tracking ID + Copy + Track buttons */}
+                    <div className="bg-[#FAF9F6] border border-[#C49A45]/30 rounded-md p-4 space-y-3">
+                      <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">
+                        Consignment / Tracking ID
+                      </span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <code className="font-mono text-base font-bold text-[#0F3D2E] select-all bg-white border border-[#C49A45]/20 px-3 py-1.5 rounded">
+                          {selectedShipment.tracking_number}
+                        </code>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) =>
+                              handleCopyTracking(
+                                selectedShipment.id,
+                                selectedShipment.tracking_number,
+                                e,
+                              )
+                            }
+                            className="flex items-center gap-1.5 px-3 py-2 border border-[#C49A45]/40 hover:border-[#C49A45] bg-white text-[#0F3D2E] rounded font-bold uppercase text-xs transition"
+                          >
+                            {copiedId === selectedShipment.id ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span className="text-emerald-700">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 text-[#C49A45]" />
+                                <span>Copy ID</span>
+                              </>
+                            )}
+                          </button>
+
+                          <a
+                            href={getCourierTrackingUrl(selectedShipment.carrier_name)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-4 py-2 bg-[#0F3D2E] hover:bg-[#15543F] text-richCream rounded font-bold uppercase text-xs transition shadow-sm"
+                          >
+                            <span>Track on Portal</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-[#C89B3C]" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Status Update Action: Mark Delivered / Mark Returned */}
+              <div className="bg-white border border-[#C49A45]/20 rounded-lg p-5 space-y-3 shadow-sm">
+                <h4 className="font-serif text-sm font-bold text-deodharForest flex items-center gap-1.5 border-b border-indianInk/5 pb-2">
+                  <PackageCheck className="w-4 h-4 text-[#C49A45]" /> Delivery Settlement Status
+                </h4>
+
+                {selectedShipment.status === "delivered" ? (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-md flex items-center gap-2.5">
+                    <Check className="w-5 h-5 text-emerald-700 shrink-0" />
+                    <div>
+                      <p className="font-bold text-xs uppercase tracking-wider text-emerald-800">
+                        Order Delivered
+                      </p>
+                      <p className="text-[11px] text-emerald-700 mt-0.5">
+                        This order has been confirmed as delivered to the customer.
+                      </p>
+                    </div>
+                  </div>
+                ) : selectedShipment.status === "returned" ? (
+                  <div className="p-3.5 bg-red-50 border border-red-200 text-red-900 rounded-md flex items-center gap-2.5">
+                    <AlertCircle className="w-5 h-5 text-red-700 shrink-0" />
+                    <div>
+                      <p className="font-bold text-xs uppercase tracking-wider text-red-800">
+                        Package Returned
+                      </p>
+                      <p className="text-[11px] text-red-700 mt-0.5">
+                        This package was recorded as returned to warehouse by the courier service.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-xs text-indianInk/70 leading-relaxed">
+                      Once the third-party courier confirms package status, mark this dispatch accordingly:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <button
+                        onClick={() => handleUpdateStatus("delivered")}
+                        disabled={isUpdatingStatus}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1B5E20] hover:bg-[#2E7D32] text-white font-sans text-xs font-bold uppercase tracking-wider rounded transition shadow-sm disabled:opacity-50"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Mark as Delivered</span>
+                      </button>
+                      <button
+                        onClick={() => handleUpdateStatus("returned")}
+                        disabled={isUpdatingStatus}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-700 hover:bg-red-800 text-white font-sans text-xs font-bold uppercase tracking-wider rounded transition shadow-sm disabled:opacity-50"
+                      >
+                        <AlertCircle className="w-4 h-4" />
+                        <span>Mark as Returned</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Order & Recipient Information */}
+              <div className="bg-white border border-[#C49A45]/15 rounded-lg p-5 space-y-3 shadow-sm">
+                <h4 className="font-serif text-sm font-bold text-deodharForest flex items-center gap-1.5 border-b border-indianInk/5 pb-2">
+                  <User className="w-4 h-4 text-[#C49A45]" /> Recipient Delivery Details
+                </h4>
+                {isOrderPending ? (
+                  <div className="flex items-center gap-2 py-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#C49A45]" />
+                    <span className="text-[10px] text-indianInk/50 italic">
+                      Retrieving customer database records...
+                    </span>
+                  </div>
+                ) : orderDetails ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <div>
-                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">Courier Carrier</span>
-                        <span className="font-bold text-[#1E352F] uppercase tracking-wide">{selectedShipment.carrier_name}</span>
+                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">
+                          Customer Name
+                        </span>
+                        <span className="font-bold text-indianInk">
+                          {orderDetails.customer_snapshot.first_name || ""}{" "}
+                          {orderDetails.customer_snapshot.last_name || ""}
+                        </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">AWB Waybill</span>
-                        <span className="font-mono font-medium text-indianInk">
-                          {selectedShipment.awb_number || "Not assigned"}
+                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">
+                          Email
+                        </span>
+                        <span className="font-mono text-indianInk">
+                          {orderDetails.customer_snapshot.email}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">
+                          Phone
+                        </span>
+                        <span className="font-sans text-indianInk">
+                          {orderDetails.customer_snapshot.phone || "Not listed"}
                         </span>
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <div>
-                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">Tracking Number ID</span>
-                        <code className="font-mono text-indianInk font-semibold bg-[#FAF9F6] border border-[#C49A45]/20 p-1.5 rounded inline-block text-[10px] select-all">
-                          {selectedShipment.tracking_number}
-                        </code>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">Estimated Delivery</span>
-                        <span className="font-sans font-semibold text-indianInk flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-[#C49A45]" />
-                          {selectedShipment.estimated_delivery_date
-                            ? formatDateTime(selectedShipment.estimated_delivery_date).split(",")[0]
-                            : "Not Scheduled"}
-                        </span>
-                      </div>
+                    <div>
+                      <span className="text-[10px] text-indianInk/50 block font-semibold uppercase">
+                        Shipping Address
+                      </span>
+                      <p className="font-bold text-indianInk">
+                        {orderDetails.shipping_address_snapshot.full_name}
+                      </p>
+                      <p className="text-indianInk mt-0.5 leading-relaxed">
+                        {orderDetails.shipping_address_snapshot.address_line1}
+                        {orderDetails.shipping_address_snapshot.address_line2 &&
+                          `, ${orderDetails.shipping_address_snapshot.address_line2}`}
+                      </p>
+                      <p className="text-indianInk font-medium">
+                        {orderDetails.shipping_address_snapshot.city},{" "}
+                        {orderDetails.shipping_address_snapshot.state} -{" "}
+                        {orderDetails.shipping_address_snapshot.pincode}
+                      </p>
+                      <p className="text-[10px] text-indianInk/40 mt-0.5">
+                        {orderDetails.shipping_address_snapshot.country}
+                      </p>
                     </div>
+                  </div>
+                ) : (
+                  <div className="text-red-500 text-xs italic flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    Failed to sync order details.
                   </div>
                 )}
               </div>
 
-              {/* Timeline Section */}
-              <div className="bg-white border border-[#C49A45]/15 rounded p-4 space-y-4 shadow-sm">
-                <h4 className="font-serif text-sm font-bold text-deodharForest flex items-center gap-1.5 border-b border-indianInk/5 pb-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#C49A45]" /> Shipment Logistics Timeline
-                </h4>
-
-                <div className="relative border-l border-burnishedGold/25 ml-3 pl-5 space-y-4 py-2">
-                  {selectedShipment.timeline && selectedShipment.timeline.length > 0 ? (
-                    selectedShipment.timeline.map((event, index) => {
-                      const isLatest = index === selectedShipment.timeline.length - 1;
-                      return (
-                        <div key={index} className="relative">
-                          <span className={`absolute -left-[27px] top-1 flex items-center justify-center w-3.5 h-3.5 rounded-full border bg-white ${
-                            isLatest ? "border-[#C49A45] text-[#C49A45]" : "border-indianInk/20"
-                          }`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${isLatest ? "bg-[#C49A45] animate-ping" : "bg-indianInk/30"}`} />
-                          </span>
-                          <div className="space-y-0.5">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                              <span className={`font-serif text-[11px] font-bold uppercase ${isLatest ? "text-deodharForest" : "text-indianInk/60"}`}>
-                                {(event.status || "").replace(/_/g, " ")}
-                              </span>
-                              <span className="text-[9px] text-indianInk/40">
-                                {formatDateTime(event.timestamp)}
-                              </span>
-                            </div>
-                            <p className="text-indianInk/70">{event.message}</p>
-                            {event.location && (
-                              <p className="text-[9px] text-indianInk/50 flex items-center gap-0.5">
-                                <MapPin className="w-2.5 h-2.5 text-red-500" /> Location: {event.location}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <span className="text-indianInk/40 italic">No events logged for this transit registry.</span>
-                  )}
-                </div>
-
-                {/* Timeline update form (Warehouse/Admin) */}
-                {selectedShipment.status !== "cancelled" && selectedShipment.status !== "delivered" && (
-                  <form onSubmit={handleAddMilestone} className="border-t border-[#C49A45]/15 pt-3 space-y-3">
-                    <h5 className="font-serif text-xs font-bold text-deodharForest flex items-center gap-1.5">
-                      Log Transit Stop Update
-                    </h5>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-indianInk/50">Status Milestone</label>
-                        <select
-                          value={milestoneStatus}
-                          onChange={(e) => setMilestoneStatus(e.target.value)}
-                          className="w-full mt-1 bg-white border border-indianInk/15 rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#C49A45] font-semibold text-indianInk uppercase"
-                        >
-                          <option value="packed">packed</option>
-                          <option value="shipped">shipped</option>
-                          <option value="out_for_delivery">out_for_delivery</option>
-                          <option value="delivered">delivered</option>
-                          <option value="failed">failed</option>
-                          <option value="returned">returned</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-[9px] font-bold uppercase text-indianInk/50">Transit Location (Optional)</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Salem sorting hub, Transit Point..."
-                          value={milestoneLocation}
-                          onChange={(e) => setMilestoneLocation(e.target.value)}
-                          className="w-full mt-1 border border-indianInk/15 rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#C49A45] bg-white text-indianInk"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-bold uppercase text-indianInk/50">Activity Message log</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Dispatched from transit sorting office..."
-                        value={milestoneMessage}
-                        required
-                        onChange={(e) => setMilestoneMessage(e.target.value)}
-                        className="w-full mt-1 border border-indianInk/15 rounded px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#C49A45] bg-white text-indianInk"
-                      />
-                    </div>
-                    <div className="flex justify-end">
-                      <button
-                        type="submit"
-                        disabled={updateStatusMutation.isPending}
-                        className="px-3.5 py-1.5 bg-[#1E352F] hover:bg-[#1E352F]/90 text-white font-sans text-[10px] font-bold uppercase tracking-widest rounded transition disabled:opacity-50"
-                      >
-                        Log Status Stop
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-
-              {/* Delivery Proof Section (Future Ready UI Only) */}
-              <div className="bg-white border border-[#C49A45]/15 rounded p-4 space-y-3 shadow-sm relative opacity-60">
-                <div className="flex justify-between items-center border-b border-indianInk/5 pb-2">
-                  <h4 className="font-serif text-sm font-bold text-deodharForest flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-[#C49A45]" /> Delivery Proof Verification
-                  </h4>
-                  <span className="font-sans text-[8px] font-bold tracking-widest uppercase text-[#C49A45] border border-[#C49A45]/30 px-1.5 py-0.5 rounded bg-[#FAF9F6]">
-                    Future Feature
-                  </span>
-                </div>
-                <p className="text-[10px] text-indianInk/50 italic leading-relaxed">
-                  Placeholder UI for delivery logs verification. Digital signatures and geo-tracking uploads will populate here.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                  <div className="border border-dashed border-indianInk/15 rounded p-2.5 text-center bg-[#FAF9F6]/20">
-                    <span className="text-[9px] font-bold block text-indianInk/40 uppercase">Delivery Proof Doc</span>
-                    <button disabled className="mt-2 text-[9px] font-bold text-deodharForest bg-indianInk/5 px-2 py-1 rounded cursor-not-allowed uppercase border border-indianInk/10">
-                      Upload PDF
-                    </button>
-                  </div>
-                  <div className="border border-dashed border-indianInk/15 rounded p-2.5 text-center bg-[#FAF9F6]/20">
-                    <span className="text-[9px] font-bold block text-indianInk/40 uppercase">Signature Pad</span>
-                    <div className="h-10 border border-indianInk/10 bg-indianInk/[0.02] rounded mt-1.5 flex items-center justify-center text-[8px] text-indianInk/30 italic">
-                      Draw Signature
-                    </div>
-                  </div>
-                  <div className="border border-dashed border-indianInk/15 rounded p-2.5 text-center bg-[#FAF9F6]/20">
-                    <span className="text-[9px] font-bold block text-indianInk/40 uppercase">Delivery Photo</span>
-                    <button disabled className="mt-2 text-[9px] font-bold text-deodharForest bg-indianInk/5 px-2 py-1 rounded cursor-not-allowed uppercase border border-indianInk/10">
-                      Capture Image
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Override / Soft-Delete (Admin only) */}
+              {/* Administrative Actions */}
               {isAdmin && (
                 <div className="border-t border-[#C49A45]/15 pt-4 flex justify-between gap-3">
                   <button
                     onClick={handleDeleteShipment}
                     disabled={deleteShipmentMutation.isPending}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-red-500 hover:bg-red-50 text-red-700 font-sans text-[10px] font-bold uppercase tracking-widest rounded transition"
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-red-400 hover:bg-red-50 text-red-700 font-sans text-[10px] font-bold uppercase tracking-widest rounded transition"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    Delete Shipment
+                    Delete Record
                   </button>
                   {selectedShipment.status !== "cancelled" && (
                     <button
@@ -996,7 +957,7 @@ export default function AdminShipmentsPage() {
                       className="flex items-center gap-1.5 px-4 py-1.5 bg-[#C62828] hover:bg-red-800 text-white font-sans text-[10px] font-bold uppercase tracking-widest rounded transition shadow-md"
                     >
                       <X className="w-3.5 h-3.5" />
-                      Cancel Label
+                      Cancel Dispatch
                     </button>
                   )}
                 </div>
@@ -1024,7 +985,7 @@ export default function AdminShipmentsPage() {
               {/* Header */}
               <div className="bg-[#1E352F] text-white px-6 py-4 flex justify-between items-center">
                 <h3 className="font-serif text-lg font-bold flex items-center gap-2">
-                  <Truck className="w-5 h-5 text-[#C49A45]" /> Dispatch Shipment (New)
+                  <Truck className="w-5 h-5 text-[#C89B3C]" /> Dispatch Shipment (New)
                 </h3>
                 <button
                   onClick={() => {
@@ -1038,89 +999,72 @@ export default function AdminShipmentsPage() {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleCreateShipment} className="p-6 space-y-4 font-sans text-xs text-indianInk">
-                
-                {/* Order Selector */}
+              <form
+                onSubmit={handleCreateShipment}
+                className="p-6 space-y-4 font-sans text-xs text-indianInk"
+              >
+                {/* 1. Order Selector */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/50">
-                    Select Customer Order (Paid & Confirmed)
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/60 block">
+                    1. Select Customer Order (Paid & Confirmed) <span className="text-red-500">*</span>
                   </label>
                   {pendingOrders.length > 0 ? (
                     <select
                       value={createForm.orderId}
                       onChange={(e) => setCreateForm({ ...createForm, orderId: e.target.value })}
-                      className="w-full text-xs border border-indianInk/15 focus:border-[#C49A45] rounded p-2.5 focus:outline-none bg-[#FAF9F6]/20 font-semibold"
+                      className="w-full text-xs border border-indianInk/20 focus:border-[#C49A45] rounded p-2.5 focus:outline-none bg-[#FAF9F6]/30 font-semibold text-indianInk"
+                      required
                     >
                       <option value="">-- Choose Order --</option>
                       {pendingOrders.map((o) => (
                         <option key={o.id} value={o.id}>
-                          Order #{o.order_number} — {o.customer_snapshot.first_name || ""} ({formatCurrency(o.pricing.grand_total)})
+                          Order #{o.order_number} — {o.customer_snapshot.first_name || ""}{" "}
+                          ({formatCurrency(o.pricing.grand_total)})
                         </option>
                       ))}
                     </select>
                   ) : (
                     <div className="p-3 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded font-semibold italic flex items-center gap-1.5 leading-relaxed text-[10px]">
                       <Info className="w-4 h-4 text-yellow-600 shrink-0" />
-                      No confirmed & paid orders are waiting for shipment dispatch in database.
+                      No confirmed & paid orders waiting for dispatch.
                     </div>
                   )}
                 </div>
 
-                {/* Carrier & Tracking */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/50">
-                      Carrier Name <span className="text-red-500 font-bold">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Delhivery, Professional Couriers..."
-                      required
-                      value={createForm.carrierName}
-                      onChange={(e) => setCreateForm({ ...createForm, carrierName: e.target.value })}
-                      className="w-full text-xs border border-indianInk/15 focus:border-[#C49A45] rounded p-2 focus:outline-none bg-[#FAF9F6]/20"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/50">
-                      Tracking Number / Consignment ID <span className="text-red-500 font-bold">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. DX99382109IN..."
-                      required
-                      value={createForm.trackingNumber}
-                      onChange={(e) => setCreateForm({ ...createForm, trackingNumber: e.target.value })}
-                      className="w-full text-xs border border-indianInk/15 focus:border-[#C49A45] rounded p-2 focus:outline-none bg-[#FAF9F6]/20 font-mono"
-                    />
-                  </div>
+                {/* 2. Courier Service Select */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/60 block">
+                    2. Courier Service <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={createForm.carrierName}
+                    onChange={(e) => setCreateForm({ ...createForm, carrierName: e.target.value })}
+                    className="w-full text-xs border border-indianInk/20 focus:border-[#C49A45] rounded p-2.5 focus:outline-none bg-white font-bold text-[#0F3D2E]"
+                    required
+                  >
+                    {COURIER_SERVICES.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name} ({c.trackingUrl})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* AWB Number & Estimated Delivery Date */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/50">
-                      Air Waybill (AWB) Number (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. AWB-100203..."
-                      value={createForm.awbNumber}
-                      onChange={(e) => setCreateForm({ ...createForm, awbNumber: e.target.value })}
-                      className="w-full text-xs border border-indianInk/15 focus:border-[#C49A45] rounded p-2 focus:outline-none bg-[#FAF9F6]/20"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/50">
-                      Estimated Delivery Date (Optional)
-                    </label>
-                    <input
-                      type="date"
-                      value={createForm.estimatedDeliveryDate}
-                      onChange={(e) => setCreateForm({ ...createForm, estimatedDeliveryDate: e.target.value })}
-                      className="w-full text-xs border border-indianInk/15 focus:border-[#C49A45] rounded p-2 focus:outline-none bg-[#FAF9F6]/20"
-                    />
-                  </div>
+                {/* 3. Tracking Number / ID */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/60 block">
+                    3. Tracking Number / Consignment ID <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter tracking / consignment ID from courier..."
+                    required
+                    value={createForm.trackingNumber}
+                    onChange={(e) =>
+                      setCreateForm({ ...createForm, trackingNumber: e.target.value })
+                    }
+                    className="w-full text-xs border border-indianInk/20 focus:border-[#C49A45] rounded p-2.5 focus:outline-none bg-[#FAF9F6]/20 font-mono font-bold text-indianInk"
+                  />
                 </div>
 
                 {createError && (
@@ -1145,9 +1089,9 @@ export default function AdminShipmentsPage() {
                   <button
                     type="submit"
                     disabled={createShipmentMutation.isPending || pendingOrders.length === 0}
-                    className="flex-1 py-2.5 text-center font-sans text-xs font-bold uppercase tracking-wider bg-[#1E352F] hover:bg-[#1E352F]/90 text-white rounded transition shadow-md disabled:opacity-50 font-semibold"
+                    className="flex-1 py-2.5 text-center font-sans text-xs font-bold uppercase tracking-wider bg-[#0F3D2E] hover:bg-[#15543F] text-richCream rounded transition shadow-md disabled:opacity-50 font-semibold"
                   >
-                    {createShipmentMutation.isPending ? "Dispatched..." : "Register Dispatch"}
+                    {createShipmentMutation.isPending ? "Registering..." : "Register Dispatch"}
                   </button>
                 </div>
               </form>

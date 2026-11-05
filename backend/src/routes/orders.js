@@ -822,7 +822,7 @@ export function shipmentRoutes(context, admin = false) {
             .findOne({ order_id: req.params.order_id, ...active }, { session })
         )
           fail("Shipment already exists.", 409);
-        return insert(
+        const shipment = await insert(
           db,
           "shipments",
           {
@@ -838,20 +838,28 @@ export function shipmentRoutes(context, admin = false) {
             order_id: req.params.order_id,
             order_number: order.order_number,
             customer_id: order.customer_id,
-            status: "pending",
+            status: "shipped",
             timeline: [
               {
-                status: "pending",
-                message: "Shipment created.",
+                status: "shipped",
+                message: `Dispatched via ${req.body.carrier_name}. Tracking ID: ${req.body.tracking_number}`,
                 timestamp: now(),
                 location: null,
               },
             ],
-            shipped_at: null,
+            shipped_at: now(),
             delivered_at: null,
           },
           session,
         );
+        await update(
+          db,
+          "orders",
+          order._id,
+          { fulfillment_status: "shipped" },
+          session,
+        );
+        return shipment;
       });
       ok(res, result);
     },
