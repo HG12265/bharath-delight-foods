@@ -1,0 +1,1 @@
+// Dynamic grid layout adapter

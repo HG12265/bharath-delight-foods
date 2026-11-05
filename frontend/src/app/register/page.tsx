@@ -1,0 +1,30 @@
+import AuthGuard from "@/components/features/auth/auth-guard";
+import AuthCard from "@/components/features/auth/auth-card";
+import RegisterForm from "@/components/features/auth/register-form";
+import Link from "@/platform/link";
+
+export default function RegisterPage() {
+  return (
+    <AuthGuard requireAuth={false}>
+      <main className="min-h-screen bg-richCream flex flex-col justify-center items-center px-4 py-12 md:py-24">
+        <div className="w-full max-w-[480px] flex justify-start mb-4 animate-fade-up">
+          <Link 
+            href="/" 
+            className="flex items-center gap-2 text-xs font-sans font-semibold tracking-widest uppercase text-deodharForest hover:text-burnishedGold transition-all duration-150 hover:-translate-x-1"
+          >
+            ← Back to Home
+          </Link>
+        </div>
+        <AuthCard
+          title="Create Your Account"
+          subtitle="Join Bharath Delight Foods to order premium lab-certified foods"
+          footerText="Already have an account?"
+          footerLinkText="Sign in instead"
+          footerLinkHref="/login"
+        >
+          <RegisterForm />
+        </AuthCard>
+      </main>
+    </AuthGuard>
+  );
+}

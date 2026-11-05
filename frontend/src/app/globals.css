@@ -1,0 +1,310 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Colors mapped to HSL */
+    --background: 45 29% 98%;      /* Warm Ivory #FAF9F6 */
+    --foreground: 168 11% 13%;     /* Indian Ink #1C2321 */
+
+    --card: 0 0% 100%;             /* Pure Slate White #FFFFFF */
+    --card-foreground: 168 11% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 168 11% 13%;
+
+    --primary: 168 11% 13%;        /* Indian Ink */
+    --primary-foreground: 45 29% 98%;
+
+    --secondary: 164 28% 16%;      /* Deodhar Forest Green #1E352F */
+    --secondary-foreground: 45 29% 98%;
+
+    --muted: 45 10% 90%;
+    --muted-foreground: 168 5% 40%;
+
+    --accent: 17 63% 38%;          /* Kashmir Saffron #9E4624 */
+    --accent-foreground: 45 29% 98%;
+
+    --destructive: 358 66% 47%;    /* Error Crimson #C62828 */
+    --destructive-foreground: 45 29% 98%;
+
+    --border: 168 5% 90%;
+    --input: 168 5% 90%;
+    --ring: 40 52% 52%;            /* Burnished Gold #C49A45 */
+
+    --radius: 0.25rem;             /* 4px as per brand system guidelines */
+
+    /* System Status HSL */
+    --success: 122 46% 34%;        /* #2E7D32 */
+    --success-foreground: 45 29% 98%;
+    --warning: 40 52% 52%;         /* #C49A45 */
+    --warning-foreground: 168 11% 13%;
+    --info: 210 79% 42%;           /* #1565C0 */
+    --info-foreground: 45 29% 98%;
+
+    --header-height: 80px;
+  }
+
+  @media (max-width: 1024px) {
+    :root {
+      --header-height: 72px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    :root {
+      --header-height: 64px;
+    }
+  }
+
+  .dark {
+    --background: 168 11% 13%;
+    --foreground: 45 29% 98%;
+    --card: 167 9% 16%;
+    --card-foreground: 45 29% 98%;
+    --popover: 167 9% 16%;
+    --popover-foreground: 45 29% 98%;
+    --primary: 45 29% 98%;
+    --primary-foreground: 168 11% 13%;
+    --secondary: 164 28% 25%;
+    --secondary-foreground: 45 29% 98%;
+    --muted: 167 9% 25%;
+    --muted-foreground: 45 10% 70%;
+    --accent: 40 52% 52%;
+    --accent-foreground: 168 11% 13%;
+    --destructive: 358 66% 47%;
+    --destructive-foreground: 45 29% 98%;
+    --border: 167 9% 25%;
+    --input: 167 9% 25%;
+    --ring: 40 52% 52%;
+    --success: 122 46% 40%;
+    --success-foreground: 45 29% 98%;
+    --warning: 40 52% 52%;
+    --warning-foreground: 168 11% 13%;
+    --info: 210 79% 50%;
+    --info-foreground: 45 29% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Editorial Headings pair with Cormorant Garamond Serif */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif font-normal tracking-tight text-foreground;
+  }
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background;
+  }
+  .font-script {
+    font-family: 'Dancing Script', cursive !important;
+  }
+
+  /* Thin scrollbar for category row */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(196, 154, 69, 0.3) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(196, 154, 69, 0.35);
+    border-radius: 4px;
+  }
+}
+
+/* ── Animation Keyframes ───────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* Utility animation classes */
+.animate-fade-in       { animation: fadeIn 0.7s ease-out forwards; }
+.animate-fade-up       { animation: fadeUp 0.8s ease-out forwards; }
+.animate-fade-in-left  { animation: fadeInLeft 0.7s ease-out forwards; }
+.animate-float         { animation: float 6s ease-in-out infinite; }
+.animate-slide-in      { animation: slideInRight 0.32s cubic-bezier(0.25,0.46,0.45,0.94) forwards; }
+
+/* Staggered delays */
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-400 { animation-delay: 400ms; }
+.animate-delay-500 { animation-delay: 500ms; }
+
+/* Initial hidden state for fade animations */
+.animate-fade-up,
+.animate-fade-in,
+.animate-fade-in-left {
+  opacity: 0;
+}
+
+/* Section divider leaf helper */
+.leaf-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+.leaf-divider::before,
+.leaf-divider::after {
+  content: '';
+  flex: 1;
+  max-width: 48px;
+  height: 1px;
+  background: rgba(196, 154, 69, 0.35);
+}
+
+/* Word-reference banner treatment: cream, forest green, gold and original artwork. */
+.reference-banner{--banner-cream:#fff7e8;position:relative;isolation:isolate;overflow:hidden;background:var(--banner-cream);border-bottom:1px solid rgba(196,154,69,.18);min-height:480px;display:flex;align-items:center}
+.reference-banner__media{position:absolute;inset:0 0 0 auto;width:61%;overflow:hidden;z-index:-1}
+.reference-banner__image{width:100%;height:100%;display:block;object-fit:cover;object-position:center}
+.reference-banner__media:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--banner-cream) 0%,rgba(255,247,232,.75) 10%,rgba(255,247,232,0) 34%);pointer-events:none}
+.reference-banner__container{width:min(1440px,100%);margin-inline:auto;padding:60px clamp(24px,5.5vw,80px)}
+.reference-banner__content{width:46%;max-width:560px;position:relative}
+.reference-banner__content>div{width:100%;max-width:none;margin:0;padding:0}
+.reference-banner__content>div>div{width:100%;max-width:none;margin:0;padding-block:0}
+.reference-banner__content h1{font-family:Georgia,"Times New Roman",serif;font-size:clamp(40px,4.15vw,62px);line-height:1.1;font-weight:700;letter-spacing:-.035em;color:#173c29;margin:16px 0 20px;text-wrap:balance}
+.reference-banner__content p{font-size:15px;line-height:1.8;font-weight:400;color:#36453b;max-width:440px}
+.reference-banner__content [class*="tracking-[0.2em]"]{font-size:12px;letter-spacing:.16em;color:#9b752a}
+.reference-banner__content .font-script{font-size:29px;line-height:1.35;margin-block:8px}
+.reference-banner__content a[href="/shop"]{border-radius:6px;background:#173c29;padding:14px 24px;font-size:14px;min-height:48px}
+.reference-banner--home{min-height:620px}
+.reference-banner--home .reference-banner__media{width:68%}
+.reference-banner--home .reference-banner__content{width:43%;max-width:490px}
+.reference-banner--home .reference-banner__content h1{font-size:clamp(46px,4.8vw,70px);margin-top:0}
+.reference-banner--home .reference-banner__content>div>div{gap:16px}
+.reference-banner--home .reference-banner__image{object-position:right center}
+.reference-banner--about{min-height:540px}
+.reference-banner--about .reference-banner__media{width:68%}
+.reference-banner--about .reference-banner__image{object-position:right center}
+.reference-banner--about .reference-banner__content p{font-size:14px;line-height:1.75}
+.brand-header__inner{gap:24px}
+.brand-header__nav{position:static;transform:none;gap:clamp(13px,1.45vw,23px);margin-left:auto}
+.brand-header__nav>a{white-space:nowrap;font-size:13px;letter-spacing:0}
+.brand-header__actions{margin-left:8px}
+.brand-header button:focus-visible,.brand-header a:focus-visible,.brand-mobile-menu a:focus-visible,.brand-mobile-menu button:focus-visible{outline:2px solid #a88338;outline-offset:4px}
+.brand-header__mobile button{width:44px;height:44px;display:grid;place-items:center}
+.brand-mobile-menu a,.brand-mobile-menu button{min-height:44px}
+.brand-mobile-menu [role="dialog"]{padding-bottom:max(24px,env(safe-area-inset-bottom));overscroll-behavior:contain}
+@media(min-width:768px) and (max-width:1023px){.reference-banner__container{padding:44px 32px}.reference-banner{min-height:460px}.reference-banner__content{width:48%}.reference-banner__content h1{font-size:39px}.reference-banner__content p{font-size:14px;line-height:1.7}.reference-banner--home{min-height:540px}.reference-banner--home .reference-banner__content{width:48%}.reference-banner--home .reference-banner__content h1{font-size:46px}.reference-banner--about{min-height:560px}}
+@media(max-width:767px){
+  .reference-banner,.reference-banner--home,.reference-banner--about{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    min-height:0;
+    background:var(--banner-cream);
+  }
+  .reference-banner__container{
+    order:0;
+    width:100%;
+    padding:20px 18px 16px;
+  }
+  .reference-banner__content,.reference-banner--home .reference-banner__content{
+    width:100%;
+    max-width:100%;
+    margin-inline:auto;
+  }
+  .reference-banner__content h1{
+    font-size:clamp(26px, 7vw, 32px) !important;
+    line-height:1.18 !important;
+    margin:0 0 10px !important;
+    letter-spacing:-0.02em;
+    color:#1E352F;
+  }
+  .reference-banner--home .reference-banner__content h1{
+    font-size:clamp(28px, 7.5vw, 34px) !important;
+    line-height:1.16 !important;
+  }
+  .reference-banner__content p,.reference-banner--about .reference-banner__content p{
+    font-size:13px !important;
+    line-height:1.6 !important;
+    color:#36453B !important;
+    max-width:100% !important;
+    margin:0 0 8px !important;
+  }
+  .reference-banner__content .font-script{
+    font-size:20px !important;
+    line-height:1.2 !important;
+    margin:2px 0 14px !important;
+  }
+  .reference-banner__content a[href="/shop"]{
+    padding:10px 20px !important;
+    font-size:13px !important;
+    min-height:40px !important;
+    border-radius:8px !important;
+    display:inline-flex !important;
+  }
+  .reference-banner__media,.reference-banner--home .reference-banner__media,.reference-banner--about .reference-banner__media{
+    position:relative;
+    inset:auto;
+    order:1;
+    width:100%;
+    aspect-ratio:809/576;
+    height:auto !important;
+    min-height:220px;
+    max-height:320px;
+    z-index:0;
+    border-top:1px solid rgba(196,154,69,0.18);
+  }
+  .reference-banner__media:after,.reference-banner--home .reference-banner__media:after,.reference-banner--about .reference-banner__media:after{
+    display:none !important;
+  }
+  .reference-banner__image,.reference-banner--home .reference-banner__image,.reference-banner--about .reference-banner__image{
+    object-position:center center !important;
+    object-fit:cover !important;
+  }
+  .brand-header__inner{gap:10px}
+  .brand-header__inner>a{gap:8px}
+  .brand-header__mobile{gap:0}
+}
+@media(max-width:359px){
+  .reference-banner__container{padding:16px 14px 12px}
+  .reference-banner__content h1{font-size:24px !important}
+  .reference-banner--home .reference-banner__content h1{font-size:25px !important}
+  .brand-header__inner{padding-inline:12px}
+  .brand-header__inner>a>div>span:last-child{max-width:135px;letter-spacing:0}
+  .brand-header__mobile button{width:40px}
+}
+@media(prefers-reduced-motion:reduce){.animate-fade-up,.animate-fade-in,.animate-fade-in-left{animation:none!important;opacity:1!important;transform:none!important}.animate-float,.animate-slide-in{animation:none!important}html{scroll-behavior:auto}}
+
+:root {--font-serif:"Cormorant Garamond",serif;--font-sans:"Outfit",sans-serif;--font-script:"Dancing Script",cursive;}
