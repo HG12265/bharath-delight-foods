@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "@/platform/navigation";
 import { useMe } from "@/hooks/use-auth";
 import { useAdminOrders, useOrderDetails } from "@/hooks/use-orders";
 import {
@@ -39,11 +40,23 @@ export default function AdminShipmentsPage() {
   const isAdmin = role === "admin";
   const isWarehouse = role === "warehouse";
 
+  const searchParams = useSearchParams();
+  const urlOrderId = searchParams.get("orderId");
+
   // Page States
   const [selectedShipmentId, setSelectedShipmentId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [orderSearchQuery, setOrderSearchQuery] = useState("");
+
+  // Auto-open modal if orderId passed in URL
+  useEffect(() => {
+    if (urlOrderId) {
+      setIsCreateModalOpen(true);
+      setCreateForm((prev) => ({ ...prev, orderId: urlOrderId }));
+    }
+  }, [urlOrderId]);
 
   // Data fetching
   const {
@@ -52,7 +65,9 @@ export default function AdminShipmentsPage() {
     refetch,
     isRefetching,
   } = useAdminShipments();
-  const { data: ordersRes } = useAdminOrders(undefined, { enabled: isCreateModalOpen });
+  const { data: ordersRes } = useAdminOrders(undefined, {
+    enabled: isCreateModalOpen || !!urlOrderId,
+  });
 
   // Mutations
   const createShipmentMutation = useCreateShipment();
@@ -108,6 +123,32 @@ export default function AdminShipmentsPage() {
         !shipments.some((s) => s.order_id === order.id),
     );
   }, [orders, shipments]);
+
+  // Search filter for pending orders in dispatch modal
+  const filteredPendingOrders = useMemo(() => {
+    if (!orderSearchQuery.trim()) return pendingOrders;
+    const q = orderSearchQuery.toLowerCase().trim().replace("#", "");
+    return pendingOrders.filter((o) => {
+      if (o.order_number.toLowerCase().includes(q)) return true;
+      const cust = o.customer_snapshot;
+      const name = `${cust.first_name || ""} ${cust.last_name || ""}`.toLowerCase();
+      if (name.includes(q)) return true;
+      if (cust.email?.toLowerCase().includes(q)) return true;
+      if (cust.phone?.includes(q)) return true;
+      const addr = o.shipping_address_snapshot;
+      if (addr?.city?.toLowerCase().includes(q)) return true;
+      if (addr?.state?.toLowerCase().includes(q)) return true;
+      if (addr?.phone?.includes(q)) return true;
+      if (o.items?.some((item) => item.product_name?.toLowerCase().includes(q))) return true;
+      return false;
+    });
+  }, [pendingOrders, orderSearchQuery]);
+
+  // Selected target order details for dispatch modal
+  const selectedTargetOrder = useMemo(() => {
+    if (!createForm.orderId) return null;
+    return orders.find((o) => o.id === createForm.orderId) || null;
+  }, [orders, createForm.orderId]);
 
   // Copy tracking ID helper
   const handleCopyTracking = (id: string, trackingNumber: string, e?: React.MouseEvent) => {
@@ -981,7 +1022,7 @@ export default function AdminShipmentsPage() {
 
           {/* Modal overlay */}
           <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-            <div className="bg-white border border-[#C49A45]/20 shadow-2xl rounded-lg max-w-lg w-full overflow-hidden animate-fade-up">
+            <div className="bg-white border border-[#C49A45]/20 shadow-2xl rounded-lg max-w-xl sm:max-w-2xl w-full overflow-hidden animate-fade-up">
               {/* Header */}
               <div className="bg-[#1E352F] text-white px-6 py-4 flex justify-between items-center">
                 <h3 className="font-serif text-lg font-bold flex items-center gap-2">
@@ -991,6 +1032,7 @@ export default function AdminShipmentsPage() {
                   onClick={() => {
                     setIsCreateModalOpen(false);
                     setCreateError("");
+                    setOrderSearchQuery("");
                   }}
                   className="p-1 hover:bg-white/10 rounded transition text-white"
                 >
@@ -1001,53 +1043,222 @@ export default function AdminShipmentsPage() {
               {/* Form */}
               <form
                 onSubmit={handleCreateShipment}
-                className="p-6 space-y-4 font-sans text-xs text-indianInk"
+                className="p-6 space-y-5 font-sans text-xs text-indianInk max-h-[85vh] overflow-y-auto"
               >
-                {/* 1. Order Selector */}
-                <div className="space-y-1">
+                {/* 1. High-Volume Searchable Order Selector */}
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/60 block">
                     1. Select Customer Order (Paid & Confirmed) <span className="text-red-500">*</span>
                   </label>
-                  {pendingOrders.length > 0 ? (
-                    <select
-                      value={createForm.orderId}
-                      onChange={(e) => setCreateForm({ ...createForm, orderId: e.target.value })}
-                      className="w-full text-xs border border-indianInk/20 focus:border-[#C49A45] rounded p-2.5 focus:outline-none bg-[#FAF9F6]/30 font-semibold text-indianInk"
-                      required
-                    >
-                      <option value="">-- Choose Order --</option>
-                      {pendingOrders.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          Order #{o.order_number} — {o.customer_snapshot.first_name || ""}{" "}
-                          ({formatCurrency(o.pricing.grand_total)})
-                        </option>
-                      ))}
-                    </select>
+
+                  {selectedTargetOrder ? (
+                    <div className="bg-[#FAF9F6] border-2 border-[#C89B3C] rounded-lg p-3.5 space-y-2.5 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                            <Check className="w-3 h-3" />
+                          </span>
+                          <span className="font-serif font-bold text-sm text-[#0F3D2E]">
+                            Order #{selectedTargetOrder.order_number}
+                          </span>
+                          <span className="text-[9px] font-sans font-bold uppercase tracking-wider px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded">
+                            Paid & Confirmed
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCreateForm({ ...createForm, orderId: "" })}
+                          className="text-[11px] font-sans font-bold text-[#C49A45] hover:text-[#0F3D2E] underline transition"
+                        >
+                          Change Order
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-indianInk/80 pt-1 border-t border-[#C49A45]/20">
+                        <div>
+                          <span className="font-semibold text-indianInk block">
+                            👤 {selectedTargetOrder.customer_snapshot.first_name || ""}{" "}
+                            {selectedTargetOrder.customer_snapshot.last_name || ""}
+                          </span>
+                          <span className="text-indianInk/60 text-[10px] block truncate">
+                            ✉️ {selectedTargetOrder.customer_snapshot.email}
+                          </span>
+                          <span className="text-indianInk/70 text-[10px] block">
+                            📞{" "}
+                            {selectedTargetOrder.customer_snapshot.phone ||
+                              selectedTargetOrder.shipping_address_snapshot.phone}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-indianInk block">
+                            📍 {selectedTargetOrder.shipping_address_snapshot.city},{" "}
+                            {selectedTargetOrder.shipping_address_snapshot.state}
+                          </span>
+                          <span className="text-indianInk/60 text-[10px] block">
+                            Pincode: {selectedTargetOrder.shipping_address_snapshot.pincode}
+                          </span>
+                          <span className="font-bold text-[#0F3D2E] text-xs block mt-0.5">
+                            Total: {formatCurrency(selectedTargetOrder.pricing.grand_total)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Items Preview */}
+                      <div className="pt-2 border-t border-[#C49A45]/15">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-indianInk/50 block mb-1">
+                          Items to Pack ({selectedTargetOrder.items?.length || 0}):
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {selectedTargetOrder.items?.map((item, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 text-[10px] font-medium bg-white border border-[#C49A45]/30 px-2 py-0.5 rounded text-indianInk"
+                            >
+                              <span>{item.product_name}</span>
+                              <span className="text-indianInk/50">
+                                ({item.variant_title || item.volume_weight || "Default"})
+                              </span>
+                              <strong className="text-[#0F3D2E]">x{item.quantity}</strong>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   ) : (
-                    <div className="p-3 border border-yellow-200 bg-yellow-50 text-yellow-800 rounded font-semibold italic flex items-center gap-1.5 leading-relaxed text-[10px]">
-                      <Info className="w-4 h-4 text-yellow-600 shrink-0" />
-                      No confirmed & paid orders waiting for dispatch.
+                    <div className="space-y-2">
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-indianInk/40" />
+                        <input
+                          type="text"
+                          placeholder="Search order #, customer name, phone, city, or product..."
+                          value={orderSearchQuery}
+                          onChange={(e) => setOrderSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-8 py-2 text-xs border border-indianInk/20 rounded-md bg-[#FAF9F6]/40 focus:border-[#C49A45] focus:outline-none text-indianInk placeholder:text-indianInk/40"
+                        />
+                        {orderSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setOrderSearchQuery("")}
+                            className="absolute right-2.5 top-2.5 text-indianInk/40 hover:text-indianInk"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Helper Counter */}
+                      <div className="flex items-center justify-between text-[10px] text-indianInk/50 px-1 font-semibold uppercase tracking-wider">
+                        <span>
+                          Pending Orders: {filteredPendingOrders.length}{" "}
+                          {filteredPendingOrders.length === 1 ? "order" : "orders"}
+                        </span>
+                        {orderSearchQuery && (
+                          <span>Filtered by: &quot;{orderSearchQuery}&quot;</span>
+                        )}
+                      </div>
+
+                      {/* Scrollable Order Cards List */}
+                      {filteredPendingOrders.length > 0 ? (
+                        <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1 border border-indianInk/10 rounded-md p-1.5 bg-[#FAF9F6]/20">
+                          {filteredPendingOrders.map((o) => (
+                            <div
+                              key={o.id}
+                              onClick={() => {
+                                setCreateForm({ ...createForm, orderId: o.id });
+                                setOrderSearchQuery("");
+                              }}
+                              className="p-2.5 bg-white border border-indianInk/10 hover:border-[#C89B3C] rounded-md cursor-pointer transition shadow-xs hover:shadow-sm space-y-1.5 group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-serif font-bold text-xs text-[#0F3D2E] group-hover:text-[#C89B3C] transition">
+                                    #{o.order_number}
+                                  </span>
+                                  <span className="text-[10px] text-indianInk/50">
+                                    {new Date(o.created_at).toLocaleDateString("en-IN", {
+                                      day: "numeric",
+                                      month: "short",
+                                    })}
+                                  </span>
+                                </div>
+                                <span className="font-bold text-xs text-[#0F3D2E]">
+                                  {formatCurrency(o.pricing.grand_total)}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[11px] text-indianInk/70">
+                                <span className="font-semibold text-indianInk truncate max-w-[200px]">
+                                  👤 {o.customer_snapshot.first_name || ""}{" "}
+                                  {o.customer_snapshot.last_name || ""}
+                                </span>
+                                <span className="text-[10px] text-indianInk/50">
+                                  📍 {o.shipping_address_snapshot.city},{" "}
+                                  {o.shipping_address_snapshot.state}
+                                </span>
+                              </div>
+
+                              <div className="text-[10px] text-indianInk/60 truncate border-t border-indianInk/5 pt-1">
+                                🛍️{" "}
+                                {o.items
+                                  ?.map((item) => `${item.product_name} x${item.quantity}`)
+                                  .join(", ")}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center border border-dashed border-indianInk/20 rounded-md bg-[#FAF9F6]/50 text-xs text-indianInk/50">
+                          {orderSearchQuery ? (
+                            <span>No pending orders match &quot;{orderSearchQuery}&quot;.</span>
+                          ) : (
+                            <span>No confirmed &amp; paid orders waiting for dispatch.</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
 
-                {/* 2. Courier Service Select */}
-                <div className="space-y-1">
+                {/* 2. Courier Service Select (Interactive Cards) */}
+                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-indianInk/60 block">
                     2. Courier Service <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={createForm.carrierName}
-                    onChange={(e) => setCreateForm({ ...createForm, carrierName: e.target.value })}
-                    className="w-full text-xs border border-indianInk/20 focus:border-[#C49A45] rounded p-2.5 focus:outline-none bg-white font-bold text-[#0F3D2E]"
-                    required
-                  >
-                    {COURIER_SERVICES.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name} ({c.trackingUrl})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {COURIER_SERVICES.map((c) => {
+                      const isSelected = createForm.carrierName === c.name;
+                      return (
+                        <div
+                          key={c.id}
+                          onClick={() => setCreateForm({ ...createForm, carrierName: c.name })}
+                          className={`p-3 border rounded-lg cursor-pointer transition flex items-start justify-between ${
+                            isSelected
+                              ? "bg-[#FAF9F6] border-[#0F3D2E] shadow-sm ring-1 ring-[#0F3D2E]"
+                              : "bg-white border-indianInk/15 hover:border-[#C49A45]/60 hover:bg-[#FAF9F6]/40"
+                          }`}
+                        >
+                          <div>
+                            <span className="font-serif font-bold text-xs text-[#0F3D2E] block uppercase tracking-wide">
+                              {c.name}
+                            </span>
+                            <span className="font-sans text-[10px] text-indianInk/50 block truncate max-w-[180px] mt-0.5">
+                              {c.trackingUrl.replace("https://", "")}
+                            </span>
+                          </div>
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                              isSelected
+                                ? "bg-[#0F3D2E] border-[#0F3D2E] text-white"
+                                : "border-indianInk/30"
+                            }`}
+                          >
+                            {isSelected && <Check className="w-2.5 h-2.5" />}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* 3. Tracking Number / ID */}
@@ -1081,6 +1292,7 @@ export default function AdminShipmentsPage() {
                     onClick={() => {
                       setIsCreateModalOpen(false);
                       setCreateError("");
+                      setOrderSearchQuery("");
                     }}
                     className="flex-1 py-2.5 text-center font-sans text-xs font-bold uppercase tracking-wider border border-indianInk/15 hover:bg-[#FAF9F6] text-indianInk rounded transition"
                   >
@@ -1088,7 +1300,11 @@ export default function AdminShipmentsPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={createShipmentMutation.isPending || pendingOrders.length === 0}
+                    disabled={
+                      createShipmentMutation.isPending ||
+                      !createForm.orderId ||
+                      !createForm.trackingNumber.trim()
+                    }
                     className="flex-1 py-2.5 text-center font-sans text-xs font-bold uppercase tracking-wider bg-[#0F3D2E] hover:bg-[#15543F] text-richCream rounded transition shadow-md disabled:opacity-50 font-semibold"
                   >
                     {createShipmentMutation.isPending ? "Registering..." : "Register Dispatch"}

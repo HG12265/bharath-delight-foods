@@ -1217,7 +1217,7 @@ export default function AdminOrdersPage() {
                         </div>
                       </div>
                       <Link
-                        href="/admin/shipments"
+                        href={`/admin/shipments?orderId=${selectedOrder.id}`}
                         className="px-3 py-1.5 bg-[#0F3D2E] text-white rounded text-xs font-bold uppercase whitespace-nowrap tracking-wider hover:bg-[#15543F]"
                       >
                         Dispatch →
