@@ -111,6 +111,50 @@ export default function AdminOrdersPage() {
     }
   };
 
+  // Bulk selection and invoices
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [isDownloadingBulkInvoices, setIsDownloadingBulkInvoices] = useState(false);
+
+  const handleBulkDownloadInvoices = async () => {
+    setIsDownloadingBulkInvoices(true);
+    setExportNotice(null);
+
+    try {
+      const blob = await orderService.bulkDownloadInvoices({
+        order_ids: selectedOrderIds.length > 0 ? selectedOrderIds : undefined,
+        status: selectedOrderIds.length === 0 && selectedStatus !== "all" ? selectedStatus : undefined,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const countLabel =
+        selectedOrderIds.length > 0
+          ? `${selectedOrderIds.length}-orders`
+          : selectedStatus.replace(/_/g, "-");
+      const dateSlug = new Date().toISOString().slice(0, 10);
+      link.setAttribute("download", `bharath-delight-invoices-${countLabel}-${dateSlug}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error("Bulk invoice download error:", err);
+      let msg = "Failed to generate bulk invoices. Please try again.";
+      if (err?.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          if (json?.message) msg = json.message;
+        } catch {}
+      } else if (err?.response?.data?.message) {
+        msg = err.response.data.message;
+      }
+      setExportNotice(msg);
+    } finally {
+      setIsDownloadingBulkInvoices(false);
+    }
+  };
+
   const orders = useMemo(() => ordersRes?.data || [], [ordersRes]);
 
   // Find the currently selected order from the list
@@ -215,6 +259,22 @@ export default function AdminOrdersPage() {
       return true;
     });
   }, [orders, selectedStatus, searchQuery, searchEmail]);
+
+  const toggleSelectAll = () => {
+    if (filteredOrders.length === 0) return;
+    if (selectedOrderIds.length === filteredOrders.length) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(filteredOrders.map((o) => o.id));
+    }
+  };
+
+  const toggleSelectOrder = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedOrderIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -356,6 +416,25 @@ export default function AdminOrdersPage() {
             <span>Excel (.xlsx)</span>
           </button>
 
+          {/* Bulk Invoices PDF */}
+          <button
+            onClick={handleBulkDownloadInvoices}
+            disabled={isDownloadingBulkInvoices || isPending || filteredOrders.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#C89B3C] hover:bg-[#b58b32] text-[#0F3D2E] font-sans text-xs font-bold uppercase tracking-wider rounded shadow-sm transition disabled:opacity-50"
+            title="Download all invoices combined in a single PDF for selected or filtered orders"
+          >
+            {isDownloadingBulkInvoices ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0F3D2E]" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-[#0F3D2E]" />
+            )}
+            <span>
+              {selectedOrderIds.length > 0
+                ? `Invoices (${selectedOrderIds.length})`
+                : "Bulk Invoices"}
+            </span>
+          </button>
+
           {/* Dedicated Reports Center Link */}
           <Link
             href="/admin/reports"
@@ -443,6 +522,38 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
+      {/* Bulk Action Toolbar */}
+      {selectedOrderIds.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0F3D2E] text-white px-4 py-3 rounded-lg shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#C89B3C] animate-pulse"></span>
+            <span className="font-sans text-xs font-semibold text-richCream">
+              {selectedOrderIds.length} {selectedOrderIds.length === 1 ? "order" : "orders"} selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBulkDownloadInvoices}
+              disabled={isDownloadingBulkInvoices}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#C89B3C] hover:bg-[#b58b32] text-[#0F3D2E] font-sans text-xs font-bold uppercase tracking-wider rounded transition disabled:opacity-50"
+            >
+              {isDownloadingBulkInvoices ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              <span>Download Invoices ({selectedOrderIds.length})</span>
+            </button>
+            <button
+              onClick={() => setSelectedOrderIds([])}
+              className="px-2.5 py-1.5 text-xs text-richCream/70 hover:text-white underline font-sans transition"
+            >
+              Deselect All
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Orders Output */}
       {filteredOrders.length > 0 ? (
         <>
@@ -452,6 +563,18 @@ export default function AdminOrdersPage() {
               <table className="w-full text-left font-sans text-xs border-collapse">
                 <thead>
                   <tr className="bg-[#FAF9F6] border-b border-[#C49A45]/10 text-indianInk/50">
+                    <th className="px-3 py-3 w-[44px] text-center" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={
+                          filteredOrders.length > 0 &&
+                          selectedOrderIds.length === filteredOrders.length
+                        }
+                        onChange={toggleSelectAll}
+                        className="rounded border-[#C49A45]/40 text-[#0F3D2E] focus:ring-[#C49A45] cursor-pointer"
+                        title="Select/Deselect All"
+                      />
+                    </th>
                     <th className="px-4 py-3 font-bold uppercase tracking-widest w-[110px]">Order No</th>
                     <th className="px-4 py-3 font-bold uppercase tracking-widest w-[160px]">Date</th>
                     <th className="px-4 py-3 font-bold uppercase tracking-widest w-[180px]">Customer</th>
@@ -467,10 +590,22 @@ export default function AdminOrdersPage() {
                     <tr
                       key={order.id}
                       className={`transition-colors cursor-pointer ${
-                        index % 2 === 1 ? "bg-indianInk/[0.015]" : "bg-white"
+                        selectedOrderIds.includes(order.id)
+                          ? "bg-[#C49A45]/10"
+                          : index % 2 === 1
+                          ? "bg-indianInk/[0.015]"
+                          : "bg-white"
                       } hover:bg-[#F2ECE4]/40`}
                       onClick={() => setSelectedOrderId(order.id)}
                     >
+                      <td className="px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedOrderIds.includes(order.id)}
+                          onChange={(e) => toggleSelectOrder(order.id, e as any)}
+                          className="rounded border-[#C49A45]/40 text-[#0F3D2E] focus:ring-[#C49A45] cursor-pointer"
+                        />
+                      </td>
                       <td className="px-4 py-3.5 font-bold text-[#1E352F]">
                         #{order.order_number}
                       </td>
@@ -521,43 +656,66 @@ export default function AdminOrdersPage() {
 
           {/* Mobile Stacked Card View */}
           <div className="sm:hidden space-y-4">
-            {filteredOrders.map((order) => (
-              <div
-                key={order.id}
-                onClick={() => setSelectedOrderId(order.id)}
-                className="bg-white border border-[#C49A45]/15 rounded p-4 shadow-sm hover:border-[#C49A45] transition-colors cursor-pointer space-y-3"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-sans font-bold text-xs text-[#1E352F]">#{order.order_number}</span>
-                  <span className="font-sans font-bold text-xs text-indianInk">
-                    {formatCurrency(order.pricing.grand_total)}
-                  </span>
-                </div>
-
-                <div className="text-[11px] space-y-1 text-indianInk/70">
-                  <div className="flex justify-between">
-                    <span>Customer:</span>
-                    <span className="font-semibold text-indianInk">
-                      {order.customer_snapshot.first_name || ""} {order.customer_snapshot.last_name || ""}
+            {filteredOrders.map((order) => {
+              const isSelected = selectedOrderIds.includes(order.id);
+              return (
+                <div
+                  key={order.id}
+                  onClick={() => setSelectedOrderId(order.id)}
+                  className={`border rounded p-4 shadow-sm hover:border-[#C49A45] transition-colors cursor-pointer space-y-3 ${
+                    isSelected
+                      ? "bg-[#C49A45]/10 border-[#C89B3C]"
+                      : "bg-white border-[#C49A45]/15"
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div
+                      className="flex items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => toggleSelectOrder(order.id, e as any)}
+                        className="rounded border-[#C49A45]/40 text-[#0F3D2E] focus:ring-[#C49A45] cursor-pointer"
+                      />
+                      <span className="font-sans font-bold text-xs text-[#1E352F]">
+                        #{order.order_number}
+                      </span>
+                    </div>
+                    <span className="font-sans font-bold text-xs text-indianInk">
+                      {formatCurrency(order.pricing.grand_total)}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Email:</span>
-                    <span className="font-mono text-[10px]">{order.customer_snapshot.email}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Date:</span>
-                    <span>{new Date(order.created_at).toLocaleDateString("en-IN")}</span>
-                  </div>
-                </div>
 
-                <div className="border-t border-[#C49A45]/10 pt-2 flex flex-wrap gap-1.5">
-                  {getStatusBadge("order", order.order_status)}
-                  {getStatusBadge("payment", order.payment_status)}
-                  {getStatusBadge("fulfillment", order.fulfillment_status)}
+                  <div className="text-[11px] space-y-1 text-indianInk/70">
+                    <div className="flex justify-between">
+                      <span>Customer:</span>
+                      <span className="font-semibold text-indianInk">
+                        {order.customer_snapshot.first_name || ""}{" "}
+                        {order.customer_snapshot.last_name || ""}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Email:</span>
+                      <span className="font-mono text-[10px]">
+                        {order.customer_snapshot.email}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Date:</span>
+                      <span>{new Date(order.created_at).toLocaleDateString("en-IN")}</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-[#C49A45]/10 pt-2 flex flex-wrap gap-1.5">
+                    {getStatusBadge("order", order.order_status)}
+                    {getStatusBadge("payment", order.payment_status)}
+                    {getStatusBadge("fulfillment", order.fulfillment_status)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       ) : (

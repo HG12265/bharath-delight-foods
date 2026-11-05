@@ -24,7 +24,7 @@ import {
   productViews,
 } from "../core.js";
 import { stockChange } from "./commerce.js";
-import { invoicePdf, reportExport, queueEmail } from "../documents.js";
+import { invoicePdf, bulkInvoicesPdf, reportExport, queueEmail } from "../documents.js";
 
 const transitions = {
   order_status: {
@@ -93,6 +93,76 @@ export function orderRoutes(context, admin = false) {
     router.get("/reports/export", roles("admin"), (req, res) =>
       reportExport(db, req, res),
     );
+    router.all("/invoices/bulk", roles("admin", "warehouse"), async (req, res) => {
+      let orderIds = req.body?.order_ids || req.query?.order_ids;
+      if (typeof orderIds === "string") {
+        orderIds = orderIds
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+      const filter = { ...active };
+      if (Array.isArray(orderIds) && orderIds.length > 0) {
+        filter._id = { $in: orderIds.map(oid) };
+      } else {
+        const st = req.query.status || req.body?.status;
+        if (st && st !== "all") {
+          if (st === "paid") {
+            filter.payment_status = "paid";
+          } else {
+            filter.order_status = st;
+          }
+        } else {
+          filter.$or = [
+            { order_status: { $ne: "pending_payment" } },
+            { proof_submitted_at: { $ne: null } },
+          ];
+        }
+        const startDate = req.query.start_date || req.body?.start_date;
+        const endDate = req.query.end_date || req.body?.end_date;
+        if (startDate || endDate) {
+          filter.created_at = {};
+          if (startDate) filter.created_at.$gte = new Date(startDate);
+          if (endDate) filter.created_at.$lte = new Date(endDate);
+        }
+      }
+
+      const orders = await db
+        .collection("orders")
+        .find(filter)
+        .sort({ created_at: -1 })
+        .limit(500)
+        .toArray();
+
+      if (orders.length === 0) {
+        return fail("No matching orders found to generate bulk invoices.");
+      }
+
+      const store = await settings(db);
+      for (const order of orders) {
+        if (!order.invoice_number) {
+          const invNum = `INV-${now().toISOString().slice(0, 10).replaceAll("-", "")}-${order.order_number}`;
+          await db
+            .collection("orders")
+            .updateOne(
+              { _id: order._id, invoice_number: null },
+              { $set: { invoice_number: invNum, invoice_generated_at: now() } },
+            );
+          order.invoice_number = invNum;
+          order.invoice_generated_at = now();
+        }
+      }
+
+      const pdf = await bulkInvoicesPdf(orders, store);
+      const dateSlug = now().toISOString().slice(0, 10);
+      res
+        .type("application/pdf")
+        .set(
+          "Content-Disposition",
+          `attachment; filename="bharath-delight-invoices-bulk-${dateSlug}.pdf"`,
+        )
+        .send(pdf);
+    });
     router.get("/", async (req, res) => {
       const filter = { ...active };
       if (req.query.status) {

@@ -68,6 +68,27 @@ export const orderService = {
     });
     return response.data;
   },
+
+  async bulkDownloadInvoices(params: {
+    order_ids?: string[];
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<Blob> {
+    const response = await apiClient.post(
+      "/api/v1/admin/orders/invoices/bulk",
+      {
+        order_ids: params.order_ids?.length ? params.order_ids : undefined,
+        status: params.status && params.status !== "all" ? params.status : undefined,
+        start_date: params.startDate || undefined,
+        end_date: params.endDate || undefined,
+      },
+      {
+        responseType: "blob",
+      }
+    );
+    return response.data;
+  },
 };
 
 export default orderService;

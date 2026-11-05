@@ -21,9 +21,9 @@ const currency = (value) =>
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-function pdfBuffer(render) {
+function pdfBuffer(render, options = {}) {
   return new Promise((resolve, reject) => {
-    const document = new PDFDocument({ size: "A4", margin: 36 });
+    const document = new PDFDocument({ size: "A4", margin: 36, ...options });
     const chunks = [];
     document.on("data", (chunk) => chunks.push(chunk));
     document.on("end", () => resolve(Buffer.concat(chunks)));
@@ -69,127 +69,141 @@ function table(doc, headers, rows, widths) {
   doc.x = left;
   doc.y = y + 15;
 }
-export function invoicePdf(order, store) {
-  return pdfBuffer((doc) => {
-    doc
-      .fillColor("#0F3D2E")
-      .font("Helvetica-Bold")
-      .fontSize(22)
-      .text(store.brand_name || "Bharath Delight Foods");
-    doc.fillColor("#C89B3C").fontSize(8).text("Authenticity in Every Delight.").moveDown();
-    doc.fillColor("#1C2321").font("Helvetica").fontSize(9);
-    if (store.gst_number) doc.text(`GSTIN: ${store.gst_number}`);
-    if (store.fssai_number) doc.text(`FSSAI Lic. No: ${store.fssai_number}`);
-    if (store.business_address) doc.text(`Address: ${store.business_address}`);
-    doc.moveDown();
-    doc.moveTo(36, doc.y).lineTo(559, doc.y).strokeColor("#C89B3C").stroke();
-    doc.moveDown();
-    const start = doc.y;
-    const customer = order.customer_snapshot;
-    const address = order.shipping_address_snapshot;
-    const name =
-      `${customer.first_name || ""} ${customer.last_name || ""}`.trim() ||
-      address.full_name;
-    doc
-      .fillColor("#0F3D2E")
-      .font("Helvetica-Bold")
-      .fontSize(10)
-      .text("CUSTOMER INFORMATION", 36, start);
-    doc
-      .fillColor("#1C2321")
-      .font("Helvetica")
-      .fontSize(9)
-      .text(
-        `Name: ${name}\nEmail: ${customer.email}\nPhone: ${customer.phone || address.phone}`,
-        { width: 255 },
-      );
-    doc
-      .moveDown()
-      .fillColor("#0F3D2E")
-      .font("Helvetica-Bold")
-      .fontSize(10)
-      .text("SHIPPING ADDRESS");
-    doc
-      .fillColor("#1C2321")
-      .font("Helvetica")
-      .fontSize(9)
-      .text(
-        [
-          address.full_name,
-          address.address_line1,
-          address.address_line2,
-          `${address.city}, ${address.state} - ${address.pincode}`,
-          address.country,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-        { width: 255 },
-      );
-    const end = doc.y;
-    doc
-      .fillColor("#0F3D2E")
-      .font("Helvetica-Bold")
-      .fontSize(10)
-      .text("INVOICE METADATA", 306, start);
-    doc
-      .fillColor("#1C2321")
-      .font("Helvetica")
-      .fontSize(9)
-      .text(
-        `Invoice Number: ${order.invoice_number || "PENDING"}\nInvoice Date: ${new Date(order.invoice_generated_at || now()).toLocaleDateString("en-GB")}\nOrder Number: #${order.order_number}\nPayment Status: PAID`,
-        { width: 253 },
-      );
-    doc.x = 36;
-    doc.y = Math.max(end, doc.y) + 20;
-    table(
-      doc,
-      ["SKU", "Product Details", "Qty", "Unit Price", "Total"],
-      order.items.map((item) => [
-        item.sku,
-        `${item.product_name} (${item.variant_title})`,
-        item.quantity,
-        currency(item.unit_price),
-        currency(item.line_total),
-      ]),
-      [90, 210, 40, 93, 90],
+export function renderSingleInvoice(doc, order, store) {
+  doc.x = 36;
+  doc.y = 36;
+  doc
+    .fillColor("#0F3D2E")
+    .font("Helvetica-Bold")
+    .fontSize(22)
+    .text(store.brand_name || "Bharath Delight Foods");
+  doc.fillColor("#C89B3C").fontSize(8).text("Authenticity in Every Delight.").moveDown();
+  doc.fillColor("#1C2321").font("Helvetica").fontSize(9);
+  if (store.gst_number) doc.text(`GSTIN: ${store.gst_number}`);
+  if (store.fssai_number) doc.text(`FSSAI Lic. No: ${store.fssai_number}`);
+  if (store.business_address) doc.text(`Address: ${store.business_address}`);
+  doc.moveDown();
+  doc.moveTo(36, doc.y).lineTo(559, doc.y).strokeColor("#C89B3C").stroke();
+  doc.moveDown();
+  const start = doc.y;
+  const customer = order.customer_snapshot;
+  const address = order.shipping_address_snapshot;
+  const name =
+    `${customer.first_name || ""} ${customer.last_name || ""}`.trim() ||
+    address.full_name;
+  doc
+    .fillColor("#0F3D2E")
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .text("CUSTOMER INFORMATION", 36, start);
+  doc
+    .fillColor("#1C2321")
+    .font("Helvetica")
+    .fontSize(9)
+    .text(
+      `Name: ${name}\nEmail: ${customer.email}\nPhone: ${customer.phone || address.phone}`,
+      { width: 255 },
     );
-    const totals = [
-      ["Subtotal", order.pricing.subtotal],
-      ["GST (5%)", order.pricing.tax_total],
-      ["Shipping Fee", order.pricing.shipping_fee],
-      ["Grand Total", order.pricing.grand_total],
-    ];
-    for (const [label, value] of totals) {
-      if (doc.y > 750) doc.addPage();
-      const y = doc.y;
-      doc
-        .font(label === "Grand Total" ? "Helvetica-Bold" : "Helvetica")
-        .fontSize(9)
-        .text(label, 355, y, { width: 105 });
-      doc.text(
-        label === "Shipping Fee" && amount(value).isZero()
-          ? "FREE"
-          : currency(value),
-        460,
-        y,
-        { width: 99, align: "right" },
-      );
-      doc.y = Math.max(doc.y, y + 20);
-    }
-    doc.x = 36;
+  doc
+    .moveDown()
+    .fillColor("#0F3D2E")
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .text("SHIPPING ADDRESS");
+  doc
+    .fillColor("#1C2321")
+    .font("Helvetica")
+    .fontSize(9)
+    .text(
+      [
+        address.full_name,
+        address.address_line1,
+        address.address_line2,
+        `${address.city}, ${address.state} - ${address.pincode}`,
+        address.country,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      { width: 255 },
+    );
+  const end = doc.y;
+  doc
+    .fillColor("#0F3D2E")
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .text("INVOICE METADATA", 306, start);
+  doc
+    .fillColor("#1C2321")
+    .font("Helvetica")
+    .fontSize(9)
+    .text(
+      `Invoice Number: ${order.invoice_number || "PENDING"}\nInvoice Date: ${new Date(order.invoice_generated_at || now()).toLocaleDateString("en-GB")}\nOrder Number: #${order.order_number}\nPayment Status: ${order.payment_status?.toUpperCase() || "PAID"}`,
+      { width: 253 },
+    );
+  doc.x = 36;
+  doc.y = Math.max(end, doc.y) + 20;
+  table(
+    doc,
+    ["SKU", "Product Details", "Qty", "Unit Price", "Total"],
+    order.items.map((item) => [
+      item.sku,
+      `${item.product_name} (${item.variant_title || item.volume_weight || "Default"})`,
+      item.quantity,
+      currency(item.unit_price),
+      currency(item.line_total),
+    ]),
+    [90, 210, 40, 93, 90],
+  );
+  const totals = [
+    ["Subtotal", order.pricing.subtotal],
+    ["GST (5%)", order.pricing.tax_total],
+    ["Shipping Fee", order.pricing.shipping_fee],
+    ["Grand Total", order.pricing.grand_total],
+  ];
+  for (const [label, value] of totals) {
+    if (doc.y > 750) doc.addPage();
+    const y = doc.y;
     doc
-      .moveDown(2)
-      .font("Helvetica-Oblique")
-      .fontSize(8)
-      .fillColor("#6B7280")
-      .text(
-        "Thank you for shopping with Bharath Delight Foods. Sourced responsibly.\nThis is a computer-generated document. No signature is required.",
-        36,
-        doc.y,
-        { width: 523, align: "center" },
-      );
+      .font(label === "Grand Total" ? "Helvetica-Bold" : "Helvetica")
+      .fontSize(9)
+      .text(label, 355, y, { width: 105 });
+    doc.text(
+      label === "Shipping Fee" && amount(value).isZero()
+        ? "FREE"
+        : currency(value),
+      460,
+      y,
+      { width: 99, align: "right" },
+    );
+    doc.y = Math.max(doc.y, y + 20);
+  }
+  doc.x = 36;
+  doc
+    .moveDown(2)
+    .font("Helvetica-Oblique")
+    .fontSize(8)
+    .fillColor("#6B7280")
+    .text(
+      "Thank you for shopping with Bharath Delight Foods. Sourced responsibly.\nThis is a computer-generated document. No signature is required.",
+      36,
+      doc.y,
+      { width: 523, align: "center" },
+    );
+}
+
+export function invoicePdf(order, store) {
+  return pdfBuffer((doc) => renderSingleInvoice(doc, order, store));
+}
+
+export function bulkInvoicesPdf(orders, store) {
+  return pdfBuffer((doc) => {
+    orders.forEach((order, index) => {
+      if (index > 0) doc.addPage();
+      renderSingleInvoice(doc, order, store);
+    });
   });
 }
+
 export async function reportExport(db, req, res) {
   const filter = { ...active };
   if (req.query.status) {
@@ -224,6 +238,12 @@ export async function reportExport(db, req, res) {
     order.order_number,
     new Date(order.created_at).toISOString().slice(0, 10),
     order.customer_snapshot.email,
+    (order.items || [])
+      .map(
+        (item) =>
+          `${item.product_name} (${item.variant_title || item.volume_weight || "Default"}) x${item.quantity}`,
+      )
+      .join("\n"),
     order.order_status,
     order.payment_status,
     amount(order.pricing.grand_total).toNumber(),
@@ -232,6 +252,7 @@ export async function reportExport(db, req, res) {
     "Order Number",
     "Date",
     "Customer Email",
+    "Products & Variants",
     "Order Status",
     "Payment Status",
     "Grand Total (INR)",
@@ -248,25 +269,30 @@ export async function reportExport(db, req, res) {
       fgColor: { argb: "FF0F3D2E" },
     };
     sheet.columns.forEach((column, index) => {
-      column.width = [28, 14, 36, 20, 18, 20][index];
+      column.width = [25, 14, 32, 45, 18, 18, 20][index];
     });
-    sheet.getColumn(6).numFmt = "#,##0.00";
+    sheet.getColumn(4).alignment = { wrapText: true, vertical: "top" };
+    sheet.getColumn(7).numFmt = "#,##0.00";
     res
       .type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
       .attachment("orders-report.xlsx")
       .send(Buffer.from(await workbook.xlsx.writeBuffer()));
   } else if (req.query.format === "pdf") {
-    const pdf = await pdfBuffer((doc) => {
-      doc
-        .fontSize(18)
-        .fillColor("#0F3D2E")
-        .text("Bharath Delight Foods — Orders Report");
-      doc
-        .fontSize(9)
-        .text(`Generated ${now().toISOString()} | ${orders.length} orders`)
-        .moveDown();
-      table(doc, headers, rows, [90, 60, 135, 85, 75, 78]);
-    });
+    const pdf = await pdfBuffer(
+      (doc) => {
+        doc
+          .fontSize(18)
+          .fillColor("#0F3D2E")
+          .text("Bharath Delight Foods — Orders Report");
+        doc
+          .fontSize(9)
+          .fillColor("#666666")
+          .text(`Generated ${now().toISOString().slice(0, 10)} | ${orders.length} orders total`)
+          .moveDown(1);
+        table(doc, headers, rows, [90, 60, 140, 215, 85, 80, 100]);
+      },
+      { layout: "landscape" },
+    );
     res.type("application/pdf").attachment("orders-report.pdf").send(pdf);
   } else fail("Report format must be pdf or excel.");
 }

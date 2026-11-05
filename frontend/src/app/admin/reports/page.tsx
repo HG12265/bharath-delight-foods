@@ -36,6 +36,7 @@ export default function AdminReportsPage() {
   // Export loading states
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingInvoices, setIsExportingInvoices] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
 
@@ -186,6 +187,51 @@ export default function AdminReportsPage() {
     }
   };
 
+  const handleBulkInvoices = async () => {
+    setIsExportingInvoices(true);
+    setExportError(null);
+    setExportSuccess(null);
+
+    try {
+      const blob = await orderService.bulkDownloadInvoices({
+        status: selectedStatus !== "all" ? selectedStatus : undefined,
+        startDate: computedDateRange.start,
+        endDate: computedDateRange.end,
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const statusSlug = selectedStatus.replace(/_/g, "-");
+      const dateSlug = new Date().toISOString().slice(0, 10);
+      link.setAttribute("download", `bharath-delight-invoices-${statusSlug}-${dateSlug}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setExportSuccess(
+        `Successfully generated and downloaded combined invoices PDF for ${previewOrders.length} orders.`
+      );
+      setTimeout(() => setExportSuccess(null), 5000);
+    } catch (err: any) {
+      console.error("Bulk invoices export error:", err);
+      let msg = "Failed to generate bulk invoices. Please try again.";
+      if (err?.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const json = JSON.parse(text);
+          if (json?.message) msg = json.message;
+        } catch {}
+      } else if (err?.response?.data?.message) {
+        msg = err.response.data.message;
+      }
+      setExportError(msg);
+    } finally {
+      setIsExportingInvoices(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       {/* Top Banner / Header */}
@@ -323,6 +369,25 @@ export default function AdminReportsPage() {
                 <>
                   <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
                   <span>Download Excel (.xlsx)</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={handleBulkInvoices}
+              disabled={isExportingInvoices || isPending}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#C89B3C] hover:bg-[#b58b32] text-[#0F3D2E] font-sans text-xs font-bold uppercase tracking-wider rounded shadow transition disabled:opacity-50"
+              title="Download combined multi-page PDF with all invoices for current filter"
+            >
+              {isExportingInvoices ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#0F3D2E]" />
+                  <span>Generating Invoices...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 text-[#0F3D2E]" />
+                  <span>Download Bulk Invoices (PDF)</span>
                 </>
               )}
             </button>
