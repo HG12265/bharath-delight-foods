@@ -29,9 +29,9 @@ services:
       - key: UPI_ID
         value: bharaththambidurai@oksbi
       - key: CORS_ORIGINS
-        value: https://bharath-delight-foods.netlify.app,*.netlify.app,http://localhost:3000
+        value: https://bharath-delight-foods.pages.dev,*.pages.dev,https://bharath-delight-foods.netlify.app,*.netlify.app,http://localhost:3000
       - key: FRONTEND_ORIGIN
-        value: https://bharath-delight-foods.netlify.app
+        value: https://bharath-delight-foods.pages.dev
       - key: PUBLIC_API_URL
         sync: false
       - key: BREVO_API_KEY

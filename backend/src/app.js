@@ -75,7 +75,8 @@ export function createApp(context) {
     }),
   );
   const origins = (
-    process.env.CORS_ORIGINS || "http://localhost:3000,http://127.0.0.1:3000"
+    process.env.CORS_ORIGINS ||
+    "http://localhost:3000,http://127.0.0.1:3000,https://bharath-delight-foods.pages.dev,*.pages.dev,https://bharath-delight-foods.netlify.app,*.netlify.app"
   )
     .split(",")
     .map((value) => value.trim().replace(/\/$/, ""));
@@ -84,11 +85,23 @@ export function createApp(context) {
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
         const cleanOrigin = origin.replace(/\/$/, "");
-        const isAllowed = origins.some((allowed) => {
-          if (allowed === "*" || allowed === cleanOrigin) return true;
-          if (allowed.startsWith("*.") && cleanOrigin.endsWith(allowed.slice(1))) return true;
-          return false;
-        });
+        const isAllowed =
+          cleanOrigin.endsWith(".pages.dev") ||
+          cleanOrigin.endsWith(".netlify.app") ||
+          origins.some((allowed) => {
+            if (allowed === "*" || allowed === cleanOrigin) return true;
+            if (
+              allowed.startsWith("*.") &&
+              cleanOrigin.endsWith(allowed.slice(1))
+            )
+              return true;
+            if (
+              allowed.startsWith("https://*.") &&
+              cleanOrigin.endsWith(allowed.slice(9))
+            )
+              return true;
+            return false;
+          });
         callback(null, isAllowed);
       },
       credentials: true,
