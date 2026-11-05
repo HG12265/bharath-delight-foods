@@ -305,6 +305,18 @@ export async function queueEmail(db, type, to, data, session) {
     session,
   );
 }
+
+export function getCourierUrl(carrierName) {
+  const norm = String(carrierName || "").toLowerCase().trim();
+  if (norm.includes("st courier") || norm.includes("stcourier")) {
+    return "https://stcourier.com/track/shipment";
+  }
+  if (norm.includes("professional") || norm.includes("tpc")) {
+    return "https://www.tpcindia.com";
+  }
+  return "https://stcourier.com/track/shipment";
+}
+
 const escapeHtml = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -313,6 +325,167 @@ const escapeHtml = (value) =>
         character
       ],
   );
+
+function buildEmailHtml(email, subject) {
+  const brandName = "Bharath Delight Foods";
+  const tagline = "Authenticity in Every Delight.";
+  const customerName = escapeHtml(email.data?.customer_name || "Valued Customer");
+  const orderNumber = escapeHtml(email.data?.order_number || "");
+  const carrierName = escapeHtml(email.data?.carrier_name || "Courier Partner");
+  const trackingNumber = escapeHtml(email.data?.tracking_number || "");
+  const trackingUrl = email.data?.tracking_url || getCourierUrl(carrierName);
+
+  if (email.type === "shipment_dispatched") {
+    const itemsRows = (email.data?.items || [])
+      .map(
+        (item) => `
+        <tr style="border-bottom:1px solid #e5e7eb;">
+          <td style="padding:10px 8px;font-size:13px;color:#1c2321;">
+            <strong>${escapeHtml(item.product_name)}</strong>
+            <div style="font-size:11px;color:#6b7280;">${escapeHtml(item.variant_title)}</div>
+          </td>
+          <td style="padding:10px 8px;font-size:13px;color:#1c2321;text-align:center;">x${item.quantity}</td>
+          <td style="padding:10px 8px;font-size:13px;color:#1c2321;text-align:right;">Rs. ${Number(item.total_price || 0).toFixed(2)}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const address = email.data?.shipping_address;
+    const addressHtml = address
+      ? `
+      <div style="margin-top:16px;padding:12px 16px;background:#f9fafb;border-radius:6px;font-size:12px;color:#374151;line-height:1.5;">
+        <strong style="color:#0f3d2e;text-transform:uppercase;font-size:11px;letter-spacing:0.5px;display:block;margin-bottom:4px;">Delivery Address</strong>
+        ${escapeHtml(address.full_name || "")}<br/>
+        ${escapeHtml(address.address_line1 || "")}${address.address_line2 ? ", " + escapeHtml(address.address_line2) : ""}<br/>
+        ${escapeHtml(address.city || "")}, ${escapeHtml(address.state || "")} - ${escapeHtml(address.pincode || "")}<br/>
+        Phone: ${escapeHtml(address.phone || "")}
+      </div>`
+      : "";
+
+    return `
+    <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:600px;margin:auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <div style="background:#0F3D2E;padding:24px;text-align:center;">
+        <h1 style="color:#ffffff;margin:0;font-size:24px;letter-spacing:0.5px;">${brandName}</h1>
+        <p style="color:#C89B3C;margin:6px 0 0 0;font-size:12px;font-style:italic;">${tagline}</p>
+      </div>
+      <div style="padding:24px 28px;">
+        <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:14px 18px;margin-bottom:20px;">
+          <h2 style="color:#065f46;margin:0 0 4px 0;font-size:16px;">📦 Your Order Has Been Dispatched!</h2>
+          <p style="margin:0;color:#047857;font-size:13px;">Order <strong>#${orderNumber}</strong> has been carefully packaged and handed over to our delivery partner.</p>
+        </div>
+
+        <p style="font-size:14px;color:#1f2937;margin-top:0;">Hello <strong>${customerName}</strong>,</p>
+        <p style="font-size:13px;color:#4b5563;line-height:1.5;">Great news! Your package is now on its way to you. You can track your consignment in real-time using the details below.</p>
+
+        <!-- Tracking Card -->
+        <div style="background:#FAF9F6;border:1px solid #C89B3C;border-radius:8px;padding:18px;margin:20px 0;text-align:center;">
+          <div style="font-size:11px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Courier Service</div>
+          <div style="font-size:18px;font-weight:bold;color:#0F3D2E;margin-bottom:12px;">${carrierName}</div>
+          <div style="font-size:11px;font-weight:bold;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Tracking / Consignment ID</div>
+          <div style="font-family:monospace;font-size:18px;font-weight:bold;color:#1c2321;background:#ffffff;display:inline-block;padding:6px 16px;border:1px dashed #C89B3C;border-radius:4px;letter-spacing:1px;margin-bottom:16px;">${trackingNumber}</div>
+          <div>
+            <a href="${trackingUrl}" target="_blank" style="background:#0F3D2E;color:#ffffff;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:bold;display:inline-block;">Track on Courier Portal →</a>
+          </div>
+          <div style="font-size:11px;color:#6b7280;margin-top:10px;">Tip: Copy the Tracking ID above and paste it on the tracking page to view live updates.</div>
+        </div>
+
+        <!-- Ordered Products -->
+        <h3 style="font-size:14px;color:#0F3D2E;margin:20px 0 10px 0;border-bottom:2px solid #C89B3C;padding-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Products in this Shipment</h3>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+          <thead>
+            <tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+              <th style="padding:8px;font-size:11px;color:#6b7280;text-align:left;text-transform:uppercase;">Product</th>
+              <th style="padding:8px;font-size:11px;color:#6b7280;text-align:center;text-transform:uppercase;">Qty</th>
+              <th style="padding:8px;font-size:11px;color:#6b7280;text-align:right;text-transform:uppercase;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+          </tbody>
+        </table>
+
+        ${addressHtml}
+
+        <p style="font-size:12px;color:#6b7280;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;text-align:center;">
+          Thank you for ordering with <strong>${brandName}</strong>.<br/>
+          If you have any questions, simply reply to this email.
+        </p>
+      </div>
+    </div>`;
+  }
+
+  if (email.type === "shipment_delivered") {
+    return `
+    <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:600px;margin:auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <div style="background:#0F3D2E;padding:24px;text-align:center;">
+        <h1 style="color:#ffffff;margin:0;font-size:24px;letter-spacing:0.5px;">${brandName}</h1>
+        <p style="color:#C89B3C;margin:6px 0 0 0;font-size:12px;font-style:italic;">${tagline}</p>
+      </div>
+      <div style="padding:24px 28px;">
+        <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:16px 20px;margin-bottom:20px;text-align:center;">
+          <h2 style="color:#065f46;margin:0 0 4px 0;font-size:18px;">🎉 Your Order Has Been Delivered!</h2>
+          <p style="margin:0;color:#047857;font-size:13px;">Order <strong>#${orderNumber}</strong> has been successfully delivered to your address via ${carrierName}.</p>
+        </div>
+
+        <p style="font-size:14px;color:#1f2937;margin-top:0;">Hello <strong>${customerName}</strong>,</p>
+        <p style="font-size:13px;color:#4b5563;line-height:1.6;">
+          We are pleased to inform you that your package (Tracking ID: <strong>${trackingNumber}</strong>) has been successfully delivered!
+        </p>
+        <p style="font-size:13px;color:#4b5563;line-height:1.6;">
+          We hope you relish the purity and authenticity of our traditional delicacies. Thank you for making Bharath Delight Foods a part of your family table.
+        </p>
+
+        <div style="text-align:center;margin:28px 0;">
+          <a href="https://bharath-delight-foods.pages.dev" target="_blank" style="background:#0F3D2E;color:#ffffff;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:bold;display:inline-block;">Visit Bharath Delight Foods Store →</a>
+        </div>
+
+        <p style="font-size:12px;color:#6b7280;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;text-align:center;">
+          Warm regards,<br/><strong>Bharath Delight Foods Team</strong>
+        </p>
+      </div>
+    </div>`;
+  }
+
+  if (email.type === "shipment_returned") {
+    return `
+    <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:600px;margin:auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+      <div style="background:#0F3D2E;padding:24px;text-align:center;">
+        <h1 style="color:#ffffff;margin:0;font-size:24px;letter-spacing:0.5px;">${brandName}</h1>
+        <p style="color:#C89B3C;margin:6px 0 0 0;font-size:12px;font-style:italic;">${tagline}</p>
+      </div>
+      <div style="padding:24px 28px;">
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:16px 20px;margin-bottom:20px;">
+          <h2 style="color:#991b1b;margin:0 0 4px 0;font-size:16px;">Notice: Package Marked as Returned</h2>
+          <p style="margin:0;color:#b91c1c;font-size:13px;">Order <strong>#${orderNumber}</strong> was marked as returned by ${carrierName}.</p>
+        </div>
+
+        <p style="font-size:14px;color:#1f2937;margin-top:0;">Hello <strong>${customerName}</strong>,</p>
+        <p style="font-size:13px;color:#4b5563;line-height:1.6;">
+          Your shipment with Tracking ID <strong>${trackingNumber}</strong> could not be delivered and has been marked as returned to sender by the courier service.
+        </p>
+        <p style="font-size:13px;color:#4b5563;line-height:1.6;">
+          If this was due to an address issue or if you would like us to re-dispatch your package, please reply directly to this email or contact our support team right away so we can assist you.
+        </p>
+
+        <p style="font-size:12px;color:#6b7280;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;text-align:center;">
+          Bharath Delight Foods Customer Support
+        </p>
+      </div>
+    </div>`;
+  }
+
+  // Fallback for default email types (payment_approved, etc.)
+  const message = Object.entries(email.data || {})
+    .filter(([key]) => key !== "order_id" && key !== "items" && key !== "shipping_address")
+    .map(
+      ([key, value]) =>
+        `<p style="margin:4px 0;font-size:13px;"><strong>${escapeHtml(key.replaceAll("_", " "))}:</strong> ${escapeHtml(value)}</p>`,
+    )
+    .join("");
+
+  return `<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1c2321;max-width:600px;margin:auto;padding:20px;border:1px solid #e5e7eb;border-radius:8px;"><h1 style="color:#0f3d2e;margin-top:0;">${brandName}</h1><p style="color:#c89b3c;font-style:italic;margin-top:-6px;">${tagline}</p><h2 style="font-size:16px;color:#1c2321;border-bottom:1px solid #e5e7eb;padding-bottom:8px;">${subject}</h2>${message}</div>`;
+}
+
 export async function sendPendingEmails(db) {
   if (!process.env.BREVO_API_KEY || !process.env.BREVO_SENDER_EMAIL) return;
   for (let index = 0; index < 10; index++) {
@@ -339,19 +512,15 @@ export async function sendPendingEmails(db) {
     try {
       const subject =
         {
-          payment_approved: "Payment verified — Order confirmed",
-          payment_rejected: "Payment proof update",
-          new_order: "New order and payment proof",
-          shipment_updated: "Shipment update",
-          contact_inquiry: "New customer inquiry",
+          payment_approved: `Payment verified — Order #${email.data?.order_number || ""} confirmed`,
+          payment_rejected: `Payment proof update — Order #${email.data?.order_number || ""}`,
+          new_order: `New order and payment proof — Order #${email.data?.order_number || ""}`,
+          shipment_dispatched: `Order #${email.data?.order_number || ""} Dispatched via ${email.data?.carrier_name || "Courier"} — Bharath Delight Foods`,
+          shipment_delivered: `Order #${email.data?.order_number || ""} Delivered — Bharath Delight Foods`,
+          shipment_returned: `Order #${email.data?.order_number || ""} Update: Package Returned — Bharath Delight Foods`,
+          contact_inquiry: "New customer inquiry — Bharath Delight Foods",
         }[email.type] || "Bharath Delight Foods Update";
-      const message = Object.entries(email.data)
-        .filter(([key]) => key !== "order_id")
-        .map(
-          ([key, value]) =>
-            `<p><strong>${escapeHtml(key.replaceAll("_", " "))}</strong> ${escapeHtml(value)}</p>`,
-        )
-        .join("");
+
       const body = {
         sender: {
           name: process.env.BREVO_SENDER_NAME || "Bharath Delight Foods",
@@ -359,7 +528,7 @@ export async function sendPendingEmails(db) {
         },
         to: [{ email: email.to }],
         subject,
-        htmlContent: `<div style="font-family:Arial;color:#1c2321;max-width:600px;margin:auto"><h1 style="color:#0f3d2e">Bharath Delight Foods</h1><p style="color:#c89b3c">Authenticity in Every Delight.</p><h2>${subject}</h2>${message}</div>`,
+        htmlContent: buildEmailHtml(email, subject),
       };
       if (email.type === "payment_approved") {
         const order = await get(db, "orders", email.data.order_id);

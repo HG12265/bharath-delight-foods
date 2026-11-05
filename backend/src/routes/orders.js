@@ -24,7 +24,14 @@ import {
   productViews,
 } from "../core.js";
 import { stockChange } from "./commerce.js";
-import { invoicePdf, bulkInvoicesPdf, reportExport, queueEmail } from "../documents.js";
+import {
+  invoicePdf,
+  bulkInvoicesPdf,
+  reportExport,
+  queueEmail,
+  getCourierUrl,
+  sendPendingEmails,
+} from "../documents.js";
 
 const transitions = {
   order_status: {
@@ -733,30 +740,56 @@ export function shipmentRoutes(context, admin = false) {
               { fulfillment_status: status },
               session,
             );
-          await notify(
-            db,
-            shipment.customer_id,
-            "shipment_updated",
-            "Shipment Updated",
-            req.body.message,
-            { shipment_id: req.params.id, order_id: shipment.order_id },
-            session,
-          );
-          await queueEmail(
-            db,
-            "shipment_updated",
-            (await get(db, "orders", shipment.order_id, session))
-              .customer_snapshot.email,
-            {
-              order_number: shipment.order_number,
-              message: req.body.message,
-              tracking_number: shipment.tracking_number,
-              status,
-            },
-            session,
-          );
+
+          const order = await get(db, "orders", shipment.order_id, session);
+          const customerEmail = order?.customer_snapshot?.email;
+
+          // Send emails ONLY for Delivered or Returned
+          if (status === "delivered" || status === "returned") {
+            const emailType = status === "delivered" ? "shipment_delivered" : "shipment_returned";
+            const notificationTitle = status === "delivered" ? "Order Delivered" : "Shipment Returned";
+            await notify(
+              db,
+              shipment.customer_id,
+              emailType,
+              notificationTitle,
+              req.body.message,
+              { shipment_id: req.params.id, order_id: shipment.order_id },
+              session,
+            );
+            if (customerEmail) {
+              await queueEmail(
+                db,
+                emailType,
+                customerEmail,
+                {
+                  order_id: String(order._id),
+                  order_number: shipment.order_number,
+                  customer_name:
+                    `${order.customer_snapshot.first_name || ""} ${order.customer_snapshot.last_name || ""}`.trim() ||
+                    order.shipping_address_snapshot?.full_name ||
+                    "Customer",
+                  carrier_name: shipment.carrier_name,
+                  tracking_number: shipment.tracking_number,
+                  tracking_url: getCourierUrl(shipment.carrier_name),
+                  status,
+                  message: req.body.message,
+                  items: (order.items || []).map((item) => ({
+                    product_name: item.product_name,
+                    variant_title:
+                      item.variant_title || item.volume_weight || "Default",
+                    quantity: item.quantity,
+                    total_price: item.pricing?.total_price || item.total_price || 0,
+                  })),
+                  grand_total: order.pricing?.grand_total || 0,
+                },
+                session,
+              );
+            }
+          }
           return updated;
         });
+        sendPendingEmails(db).catch(() => {});
         ok(res, result);
       },
     );
@@ -859,8 +892,46 @@ export function shipmentRoutes(context, admin = false) {
           { fulfillment_status: "shipped" },
           session,
         );
+        await notify(
+          db,
+          shipment.customer_id,
+          "shipment_dispatched",
+          "Order Dispatched",
+          `Your order #${order.order_number} has been dispatched via ${shipment.carrier_name}. Tracking ID: ${shipment.tracking_number}`,
+          { shipment_id: String(shipment._id), order_id: req.params.order_id },
+          session,
+        );
+        if (order.customer_snapshot?.email) {
+          await queueEmail(
+            db,
+            "shipment_dispatched",
+            order.customer_snapshot.email,
+            {
+              order_id: String(order._id),
+              order_number: order.order_number,
+              customer_name:
+                `${order.customer_snapshot.first_name || ""} ${order.customer_snapshot.last_name || ""}`.trim() ||
+                order.shipping_address_snapshot?.full_name ||
+                "Customer",
+              carrier_name: shipment.carrier_name,
+              tracking_number: shipment.tracking_number,
+              tracking_url: getCourierUrl(shipment.carrier_name),
+              items: (order.items || []).map((item) => ({
+                product_name: item.product_name,
+                variant_title:
+                  item.variant_title || item.volume_weight || "Default",
+                quantity: item.quantity,
+                total_price: item.pricing?.total_price || item.total_price || 0,
+              })),
+              shipping_address: order.shipping_address_snapshot,
+              grand_total: order.pricing?.grand_total || 0,
+            },
+            session,
+          );
+        }
         return shipment;
       });
+      sendPendingEmails(db).catch(() => {});
       ok(res, result);
     },
   );
