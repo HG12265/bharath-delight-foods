@@ -1,0 +1,18 @@
+{
+  "backend_tests": 14,
+  "backend_tests_passed": 14,
+  "original_registered_routes": 106,
+  "node_routes_covered": 106,
+  "frontend_typecheck": "passed",
+  "frontend_production_build": "passed",
+  "browser_route_viewport_checks": 30,
+  "browser_page_errors": 0,
+  "browser_horizontal_overflow": 0,
+  "missing_source_image_files": 24,
+  "live_provider_verification": "not performed",
+  "original_visual_parity": "not verified",
+  "production_performance_comparison": "not benchmarked",
+  "restored_from_supplied_assets": 1,
+  "remaining_missing_image_files": 23,
+  "browser_product_signin_add_to_cart": "passed"
+}

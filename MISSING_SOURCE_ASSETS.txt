@@ -1,0 +1,27 @@
+The uploaded ZIP references these local image files but does not contain them. Copy the original public/images folder into frontend/public/images to restore the exact artwork.
+
+/images/about-founder.jpeg
+/images/about-why-exist.png
+/images/badge_crest.png
+/images/category-ghee.png
+/images/category-jaggery.png
+/images/category-more.png
+/images/category-oils.png
+/images/category-spices.png
+/images/deserves-best-family-hd.png
+/images/extracted_image1.png
+/images/follow-journey-full-sky.png
+/images/home-and-about-page-panner-mobile.png
+/images/home-and-about-page-panner.png
+/images/product-placeholder.jpg
+/images/promise-banner-clean.png
+/images/promise-bg.png
+/images/promise-hero-jars.png
+/images/promise-landscape.png
+/images/promise-vertical-landscape.png
+/images/rasipuram-ghee.jpg
+/images/uthukuli-ghee.jpg
+/images/values-leaf-left.png
+/images/values-leaf-right.png
+
+The referenced /images/logo.png path was restored using the logo.png supplied in the upload.
