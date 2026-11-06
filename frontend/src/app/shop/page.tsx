@@ -332,14 +332,25 @@ function ShopContent() {
 
   // Auto-scroll to catalog if category param or hash is present on mount or URL change
   useEffect(() => {
-    if (urlCategory || (typeof window !== "undefined" && window.location.hash === "#product-catalog")) {
-      const timer1 = setTimeout(() => scrollToCatalog(), 250);
-      const timer2 = setTimeout(() => scrollToCatalog(), 600);
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-      };
-    }
+    const handleScrollTarget = () => {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      if (urlCategory || hash === "#product-catalog" || hash === "#all-products" || hash === "#products") {
+        scrollToCatalog();
+      }
+    };
+
+    handleScrollTarget();
+    const timer1 = setTimeout(handleScrollTarget, 150);
+    const timer2 = setTimeout(handleScrollTarget, 450);
+
+    const onHashChange = () => handleScrollTarget();
+    window.addEventListener("hashchange", onHashChange);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      window.removeEventListener("hashchange", onHashChange);
+    };
   }, [urlCategory]);
 
   const handleCategorySelect = (slug: string) => {
