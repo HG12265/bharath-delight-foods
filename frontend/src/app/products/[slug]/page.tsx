@@ -250,7 +250,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             </div>
 
             {/* Right Column: Product Info */}
-            <div className="lg:col-span-6 flex flex-col gap-6 animate-fade-up" style={{ animationDelay: "100ms" }}>
+            <div className="lg:col-span-6 flex flex-col gap-5 animate-fade-up" style={{ animationDelay: "100ms" }}>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <span className="px-2.5 py-1 bg-deodharForest text-richCream text-[9px] uppercase tracking-widest font-semibold rounded-[2px] shadow-sm border border-burnishedGold/25">
@@ -265,20 +265,73 @@ export default function ProductDetailPage({ params }: PageProps) {
                 <h1 className="font-serif text-3xl sm:text-4xl font-bold text-deodharForest leading-tight">
                   {product.name}
                 </h1>
-                <div className="flex flex-wrap items-baseline gap-3 mt-1 font-sans">
-                  <span className="text-3xl font-bold text-[#0F3D2E]">
-                    {formatINR(effectivePrice)}
-                  </span>
-                  {hasOffer && originalPrice > effectivePrice && (
-                    <>
-                      <span className="text-xl text-indianInk/40 line-through">
-                        {formatINR(originalPrice)}
+
+                {/* Price and Available Volume side-by-side */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3.5 px-4 rounded-lg bg-white/80 border border-burnishedGold/20 shadow-sm mt-2">
+                  {/* Price */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-indianInk/60 font-semibold block font-sans">
+                      Price
+                    </span>
+                    <div className="flex flex-wrap items-baseline gap-2.5 font-sans">
+                      <span className="text-3xl font-bold text-[#0F3D2E]">
+                        {formatINR(effectivePrice)}
                       </span>
-                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded font-bold text-xs">
-                        SAVE {formatINR(discountAmount)} {discountPercent > 0 ? `(${discountPercent}% OFF)` : ""}
-                      </span>
-                    </>
-                  )}
+                      {hasOffer && originalPrice > effectivePrice && (
+                        <>
+                          <span className="text-lg text-indianInk/40 line-through">
+                            {formatINR(originalPrice)}
+                          </span>
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded font-bold text-[11px]">
+                            {discountPercent > 0 ? `${discountPercent}% OFF` : `SAVE ${formatINR(discountAmount)}`}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Vertical separator for sm+ */}
+                  <div className="hidden sm:block h-10 w-px bg-burnishedGold/20" />
+
+                  {/* Available Volume */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] uppercase tracking-wider text-indianInk/60 font-semibold block font-sans">
+                      Available Volume
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {isDbAvailable && variants.length > 0 ? (
+                        variants.map((v: any, idx: number) => {
+                          const isSelected = idx === selectedVariantIndex;
+                          const vHasOffer = Boolean(v.has_offer);
+                          return (
+                            <button
+                              key={v.variant_id}
+                              onClick={() => {
+                                setSelectedVariantIndex(idx);
+                                setQuantity(1); // Reset quantity to 1 when changing size
+                              }}
+                              className={`px-3.5 py-2 rounded-[4px] font-sans text-xs font-bold uppercase tracking-wider border-2 transition-all flex items-center gap-1.5 ${
+                                isSelected
+                                  ? "border-gheeGold bg-[#FFFDF0] text-deodharForest shadow-sm font-black"
+                                  : "border-burnishedGold/15 hover:border-gheeGold/40 text-indianInk/70 bg-white"
+                              }`}
+                            >
+                              <span>{v.volume_weight || v.title}</span>
+                              {vHasOffer && (
+                                <span className="px-1.5 py-0.5 bg-[#0F3D2E] text-[#C89B3C] text-[8px] rounded uppercase font-bold tracking-wider">
+                                  SALE
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <button className="px-4 py-2 border-2 border-gheeGold bg-[#FFFDF0] text-deodharForest rounded-[4px] font-sans text-xs font-bold tracking-widest uppercase shadow-sm select-none cursor-default">
+                          {volumeText}
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -288,105 +341,65 @@ export default function ProductDetailPage({ params }: PageProps) {
                 {descriptionText}
               </p>
 
-              {/* Selector Areas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-2">
-                {/* Size Selector */}
-                <div className="space-y-2">
-                  <span className="text-[10px] uppercase tracking-wider text-indianInk/60 font-semibold block font-sans">
-                    Available Volume
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {isDbAvailable && variants.length > 0 ? (
-                      variants.map((v: any, idx: number) => {
-                        const isSelected = idx === selectedVariantIndex;
-                        const vHasOffer = Boolean(v.has_offer);
-                        return (
-                          <button
-                            key={v.variant_id}
-                            onClick={() => {
-                              setSelectedVariantIndex(idx);
-                              setQuantity(1); // Reset quantity to 1 when changing size
-                            }}
-                            className={`px-4 py-2.5 rounded-[4px] font-sans text-xs font-bold uppercase tracking-wider border-2 transition-all flex items-center gap-1.5 ${
-                              isSelected
-                                ? "border-gheeGold bg-[#FFFDF0] text-deodharForest shadow-sm font-black"
-                                : "border-burnishedGold/15 hover:border-gheeGold/40 text-indianInk/70 bg-white"
-                            }`}
-                          >
-                            <span>{v.volume_weight || v.title}</span>
-                            {vHasOffer && (
-                              <span className="px-1 py-0.5 bg-[#0F3D2E] text-white text-[8px] rounded uppercase font-bold">
-                                SALE
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <button className="px-5 py-2.5 border-2 border-gheeGold bg-[#FFFDF0] text-deodharForest rounded-[4px] font-sans text-xs font-bold tracking-widest uppercase shadow-sm select-none cursor-default">
-                        {volumeText}
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Quantity Selector */}
-                <div className="space-y-2">
-                  <span className="text-[10px] uppercase tracking-wider text-indianInk/60 font-semibold block font-sans">
-                    Quantity
-                  </span>
-                  <div className="flex items-center border border-burnishedGold/25 rounded-[4px] w-32 bg-white overflow-hidden shadow-sm h-[42px]">
-                    <button 
-                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                      className="p-2 hover:bg-richCream text-indianInk/70 transition-colors w-10 flex items-center justify-center border-r border-burnishedGold/15 h-full"
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="flex-grow text-center text-sm font-sans font-bold text-indianInk">
-                      {quantity}
+              {/* Quantity Selector & Action Buttons */}
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3.5">
+                  {/* Quantity Selector */}
+                  <div className="space-y-1.5 shrink-0">
+                    <span className="text-[10px] uppercase tracking-wider text-indianInk/60 font-semibold block font-sans">
+                      Quantity
                     </span>
-                    <button 
-                      onClick={() => setQuantity(q => q + 1)}
-                      className="p-2 hover:bg-richCream text-indianInk/70 transition-colors w-10 flex items-center justify-center border-l border-burnishedGold/15 h-full"
-                      aria-label="Increase quantity"
+                    <div className="flex items-center border border-burnishedGold/25 rounded-[4px] w-full sm:w-32 bg-white overflow-hidden shadow-sm h-[48px]">
+                      <button 
+                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                        className="p-2 hover:bg-richCream text-indianInk/70 transition-colors w-10 flex items-center justify-center border-r border-burnishedGold/15 h-full"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="flex-grow text-center text-sm font-sans font-bold text-indianInk">
+                        {quantity}
+                      </span>
+                      <button 
+                        onClick={() => setQuantity(q => q + 1)}
+                        className="p-2 hover:bg-richCream text-indianInk/70 transition-colors w-10 flex items-center justify-center border-l border-burnishedGold/15 h-full"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex-grow flex items-center gap-3">
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={isCartDisabled || addToCartMutation.isPending}
+                      className="flex-grow relative overflow-hidden group py-3 px-6 bg-deodharForest text-richCream rounded-[4px] font-sans text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 border border-transparent hover:border-gheeGold hover:shadow-[0_6px_20px_rgba(15,61,46,0.2)] disabled:opacity-50 disabled:cursor-not-allowed text-center flex items-center justify-center gap-2 h-[48px]"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      {addToCartMutation.isPending ? (
+                        <span>Adding to Cart...</span>
+                      ) : (
+                        <>
+                          <span>Add to Cart</span>
+                          <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-gheeGold/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={handleToggleWishlist}
+                      disabled={isCartDisabled || addToWishlistMutation.isPending || removeFromWishlistMutation.isPending}
+                      className={`px-4 h-[48px] rounded-[4px] border transition-all duration-300 flex items-center justify-center select-none ${
+                        isWishlisted
+                          ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100/70"
+                          : "border-burnishedGold/25 hover:border-burnishedGold bg-white hover:bg-richCream/25 text-deodharForest"
+                      } disabled:opacity-50 disabled:cursor-not-allowed shrink-0`}
+                      title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+                    >
+                      <Heart className={`w-4 h-4 transition-all duration-300 ${isWishlisted ? "fill-current scale-110" : "text-burnishedGold"}`} />
                     </button>
                   </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-3 pt-4">
-                <div className="flex gap-4">
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={isCartDisabled || addToCartMutation.isPending}
-                    className="flex-grow relative overflow-hidden group py-4 bg-deodharForest text-richCream rounded-[4px] font-sans text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 border border-transparent hover:border-gheeGold hover:shadow-[0_6px_20px_rgba(15,61,46,0.2)] disabled:opacity-50 disabled:cursor-not-allowed text-center flex items-center justify-center gap-2"
-                  >
-                    {addToCartMutation.isPending ? (
-                      <span>Adding to Cart...</span>
-                    ) : (
-                      <>
-                        <span>Add to Cart</span>
-                        <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-gheeGold/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={handleToggleWishlist}
-                    disabled={isCartDisabled || addToWishlistMutation.isPending || removeFromWishlistMutation.isPending}
-                    className={`px-5 py-4 rounded-[4px] border transition-all duration-300 flex items-center justify-center select-none ${
-                      isWishlisted
-                        ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100/70"
-                        : "border-burnishedGold/25 hover:border-burnishedGold bg-white hover:bg-richCream/25 text-deodharForest"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
-                  >
-                    <Heart className={`w-4 h-4 transition-all duration-300 ${isWishlisted ? "fill-current scale-110" : "text-burnishedGold"}`} />
-                  </button>
                 </div>
 
                 {isCartDisabled && (
