@@ -12,6 +12,7 @@ import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/hooks/us
 import { useMediaAsset } from "@/hooks/use-media";
 import { formatINR, getProductFallbackImage } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
+import { JsonLd } from "@/components/seo/json-ld";
 import { ShieldCheck, Check, ArrowLeft, Plus, Minus, Loader2, Heart } from "lucide-react";
 
 interface PageProps {
@@ -216,16 +217,8 @@ export default function ProductDetailPage({ params }: PageProps) {
   return (
     <PublicLayout>
       {/* JSON-LD Structured Data */}
-      {jsonLdProduct && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdProduct) }}
-        />
-      )}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
-      />
+      {jsonLdProduct && <JsonLd data={jsonLdProduct} id="product-jsonld" />}
+      <JsonLd data={jsonLdBreadcrumb} id="breadcrumb-jsonld" />
       <div
         className="min-h-screen text-indianInk py-12 md:py-20 border-b border-burnishedGold/15"
         style={{ background: "radial-gradient(circle at center, #FFFDF0 0%, #FAF9F6 70%, #FFF7E8 100%)" }}

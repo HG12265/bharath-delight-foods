@@ -31,6 +31,7 @@ const Page12 = lazy(() => import("./app/admin/reports/page"));
 const Page13 = lazy(() => import("./app/admin/reviews/page"));
 const Page14 = lazy(() => import("./app/admin/settings/page"));
 const Page15 = lazy(() => import("./app/admin/shipments/page"));
+const PageAdminOffers = lazy(() => import("./app/admin/offers/page"));
 const Page16 = lazy(() => import("./app/blog/[slug]/page"));
 const Page17 = lazy(() => import("./app/blog/page"));
 const Page18 = lazy(() => import("./app/cart/page"));
@@ -238,6 +239,16 @@ function AppRoutes() {
             <PageBoundary key={location.pathname}>
               <AdminLayout>
                 <RoutePage Page={Page15} />
+              </AdminLayout>
+            </PageBoundary>
+          }
+        />
+        <Route
+          path="/admin/offers"
+          element={
+            <PageBoundary key={location.pathname}>
+              <AdminLayout>
+                <RoutePage Page={PageAdminOffers} />
               </AdminLayout>
             </PageBoundary>
           }
