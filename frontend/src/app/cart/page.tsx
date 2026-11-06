@@ -139,6 +139,9 @@ export default function CartPage() {
                   const imageSrc = rawImage || fallbackImage;
                   const variantName = item.product_summary?.variant_title || item.product_summary?.volume_weight || "Standard";
                   const itemPrice = parseFloat(String(item.unit_price_snapshot ?? 0)) || 0;
+                  const originalPrice = parseFloat(String(item.original_price ?? item.product_summary?.original_price ?? itemPrice)) || itemPrice;
+                  const hasOffer = Boolean(item.has_offer || (originalPrice > itemPrice));
+                  const offerBadge = item.offer_badge || item.product_summary?.offer_badge;
                   const itemTotal = itemPrice * item.quantity;
 
                   return (
@@ -163,9 +166,16 @@ export default function CartPage() {
                           <h3 className="font-serif text-base font-bold text-deodharForest leading-tight">
                             {productName}
                           </h3>
-                          <p className="text-[10px] text-indianInk/60 font-sans tracking-wider uppercase font-semibold">
-                            Size: {variantName}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <p className="text-[10px] text-indianInk/60 font-sans tracking-wider uppercase font-semibold">
+                              Size: {variantName}
+                            </p>
+                            {hasOffer && (
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                                🏷️ {offerBadge || "Offer"}
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Qty Selector & Price controls in row */}
@@ -192,8 +202,15 @@ export default function CartPage() {
                           </div>
 
                           {/* Unit / Total Price */}
-                          <div className="text-right font-sans text-sm font-bold text-indianInk min-w-[80px]">
-                            {formatINR(itemTotal)}
+                          <div className="text-right font-sans min-w-[80px]">
+                            <div className="text-sm font-bold text-[#0F3D2E]">
+                              {formatINR(itemTotal)}
+                            </div>
+                            {hasOffer && originalPrice > itemPrice && (
+                              <div className="text-[10px] text-indianInk/40 line-through">
+                                {formatINR(originalPrice * item.quantity)}
+                              </div>
+                            )}
                           </div>
 
                           {/* Delete Action */}
@@ -221,6 +238,18 @@ export default function CartPage() {
                   </h3>
 
                   <div className="space-y-3 font-sans text-xs">
+                    {/* Offer Savings */}
+                    {parseFloat(String(cart?.summary?.total_discount ?? 0)) > 0 && (
+                      <div className="flex justify-between items-center text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded">
+                        <span className="font-semibold flex items-center gap-1">
+                          🎉 Offer Savings
+                        </span>
+                        <span className="font-bold">
+                          -{formatINR(parseFloat(String(cart?.summary?.total_discount)))}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Subtotal */}
                     <div className="flex justify-between items-center text-indianInk/70">
                       <span>Subtotal</span>

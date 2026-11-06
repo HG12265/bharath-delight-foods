@@ -304,6 +304,10 @@ export function orderRoutes(context, admin = false) {
           variant_title: variant?.title || variant?.volume_weight || "Default",
           volume_weight: variant?.volume_weight,
           unit_price: item.price,
+          original_price: item.original_price || variant?.price || item.price,
+          has_offer: Boolean(item.has_offer),
+          offer_title: item.offer_title || null,
+          offer_badge: item.offer_badge || null,
           line_total: money(amount(item.price).times(item.quantity)),
         });
       }

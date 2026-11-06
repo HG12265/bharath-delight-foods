@@ -631,7 +631,10 @@ function ShopContent() {
                 <div className="space-y-12">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
                     {displayedProducts.map((product, index) => {
-                      const priceValue = product.variants?.[0]?.price || 0;
+                      const hasOffer = Boolean(product.has_active_offer);
+                      const offerBadge = product.offer_badge;
+                      const effectivePrice = product.min_price || product.display_price || product.variants?.[0]?.price || 0;
+                      const originalPrice = product.original_min_price || product.variants?.[0]?.price || 0;
                       const volumeText = product.variants?.[0]?.volume_weight || product.variants?.[0]?.title || "";
                       const regionName = product.sourcing?.region || "Tamil Nadu";
                       const shortDesc = product.short_description;
@@ -653,6 +656,14 @@ function ShopContent() {
                               productNameOrSlug={product.slug}
                               index={index}
                             />
+
+                            {/* Active Offer Badge */}
+                            {hasOffer && offerBadge && (
+                              <div className="absolute top-4 left-4 z-30 px-2.5 py-1 bg-[#0F3D2E] text-white border border-[#C89B3C] rounded-full text-[9px] font-bold uppercase tracking-wider shadow-md flex items-center gap-1.5 animate-fade-in">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#C89B3C] animate-ping" />
+                                <span>{offerBadge}</span>
+                              </div>
+                            )}
 
                             {/* Wishlist Heart Toggle Icon */}
                             {firstVariantId && (
@@ -707,9 +718,16 @@ function ShopContent() {
                             <div className="flex items-center justify-between pt-3.5 border-t border-burnishedGold/10">
                               <div className="flex flex-col font-sans">
                                 <span className="text-[8px] uppercase tracking-wider text-indianInk/45">Starting from</span>
-                                <span className="font-sans text-xs font-bold text-indianInk">
-                                  {formatINR(priceValue)}
-                                </span>
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="font-sans text-xs font-bold text-[#0F3D2E]">
+                                    {formatINR(effectivePrice)}
+                                  </span>
+                                  {hasOffer && originalPrice > effectivePrice && (
+                                    <span className="font-sans text-[10px] text-indianInk/40 line-through">
+                                      {formatINR(originalPrice)}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               
                               <Link 

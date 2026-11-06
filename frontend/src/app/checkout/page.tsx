@@ -542,6 +542,8 @@ export default function CheckoutPage() {
                       const imageSrc = rawImage || fallbackImage;
                       const variantTitle = item.product_summary?.variant_title || item.product_summary?.volume_weight || "Standard";
                       const itemPrice = parseFloat(String(item.unit_price_snapshot ?? 0)) || 0;
+                      const originalPrice = parseFloat(String(item.original_price ?? item.product_summary?.original_price ?? itemPrice)) || itemPrice;
+                      const hasOffer = Boolean(item.has_offer || (originalPrice > itemPrice));
                       const itemTotal = itemPrice * item.quantity;
 
                       return (
@@ -558,12 +560,26 @@ export default function CheckoutPage() {
                             <h4 className="font-serif text-sm font-bold text-deodharForest truncate">
                               {productName}
                             </h4>
-                            <p className="text-[10px] text-indianInk/60 font-sans tracking-wide uppercase">
-                              Size: {variantTitle} × {item.quantity}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <p className="text-[10px] text-indianInk/60 font-sans tracking-wide uppercase">
+                                Size: {variantTitle} × {item.quantity}
+                              </p>
+                              {hasOffer && (
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded">
+                                  Offer
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="font-sans text-sm font-semibold text-indianInk shrink-0">
-                            {formatINR(itemTotal)}
+                          <div className="font-sans text-right shrink-0">
+                            <div className="text-sm font-semibold text-[#0F3D2E]">
+                              {formatINR(itemTotal)}
+                            </div>
+                            {hasOffer && originalPrice > itemPrice && (
+                              <div className="text-[10px] text-indianInk/40 line-through">
+                                {formatINR(originalPrice * item.quantity)}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -572,6 +588,17 @@ export default function CheckoutPage() {
 
                   {/* Pricing breakdown */}
                   <div className="space-y-3 font-sans text-xs border-t border-burnishedGold/10 pt-4">
+                    {parseFloat(String(cart?.summary?.total_discount ?? 0)) > 0 && (
+                      <div className="flex justify-between items-center text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded">
+                        <span className="font-semibold flex items-center gap-1">
+                          🎉 Offer Savings
+                        </span>
+                        <span className="font-bold">
+                          -{formatINR(parseFloat(String(cart?.summary?.total_discount)))}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="flex justify-between items-center text-indianInk/70">
                       <span>Subtotal</span>
                       <span className="font-semibold">{formatINR(subtotal)}</span>

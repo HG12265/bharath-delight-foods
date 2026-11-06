@@ -240,6 +240,37 @@ export async function settings(db, session) {
       { upsert: true, returnDocument: "after", session },
     );
 }
+export async function getActiveOffersMap(db, session) {
+  try {
+    const activeOffers = await db
+      .collection("offers")
+      .find({ status: "active", ...active }, { session })
+      .sort({ updated_at: -1 })
+      .toArray();
+
+    const offerMap = new Map();
+    for (const offer of activeOffers) {
+      for (const item of offer.items || []) {
+        if (item.variant_id && !offerMap.has(item.variant_id)) {
+          offerMap.set(item.variant_id, {
+            offer_id: String(offer._id),
+            offer_title: offer.title,
+            badge_text: offer.badge_text || "SPECIAL OFFER",
+            discount_type: item.discount_type || "percentage",
+            discount_value: Number(item.discount_value || 0),
+            offer_price: Number(item.offer_price || 0),
+            original_price: Number(item.original_price || 0),
+          });
+        }
+      }
+    }
+    return offerMap;
+  } catch (err) {
+    console.error("Failed to load active offers:", err);
+    return new Map();
+  }
+}
+
 export async function productViews(db, products, session) {
   const ids = [
     ...new Set(products.flatMap((product) => product.media_ids || [])),
@@ -254,15 +285,78 @@ export async function productViews(db, products, session) {
   const urls = new Map(
     media.map((asset) => [String(asset._id), asset.public_url]),
   );
+
+  const activeOffersMap = await getActiveOffersMap(db, session);
+
   return products.map((product) => {
-    const prices = (product.variants || [])
+    let hasAnyOffer = false;
+    let maxDiscountPercent = 0;
+    let primaryBadge = "";
+
+    const variants = (product.variants || []).map((variant) => {
+      const origPriceVal = Number(amount(variant.price).toFixed(2));
+      const offerInfo = activeOffersMap.get(variant.variant_id);
+
+      if (offerInfo && offerInfo.offer_price > 0 && offerInfo.offer_price < origPriceVal) {
+        hasAnyOffer = true;
+        const offerPriceVal = Number(amount(offerInfo.offer_price).toFixed(2));
+        const discountAmt = Math.max(0, origPriceVal - offerPriceVal);
+        const discountPct = origPriceVal > 0 ? Math.round((discountAmt / origPriceVal) * 100) : 0;
+
+        if (discountPct > maxDiscountPercent) {
+          maxDiscountPercent = discountPct;
+          primaryBadge = offerInfo.badge_text || `${discountPct}% OFF`;
+        }
+
+        return {
+          ...variant,
+          original_price: money(origPriceVal),
+          offer_price: money(offerPriceVal),
+          effective_price: money(offerPriceVal),
+          discount_amount: money(discountAmt),
+          discount_percentage: discountPct,
+          has_offer: true,
+          offer_title: offerInfo.offer_title,
+          offer_badge: offerInfo.badge_text || `${discountPct}% OFF`,
+        };
+      }
+
+      return {
+        ...variant,
+        original_price: money(origPriceVal),
+        offer_price: null,
+        effective_price: money(origPriceVal),
+        discount_amount: money(0),
+        discount_percentage: 0,
+        has_offer: false,
+        offer_title: null,
+        offer_badge: null,
+      };
+    });
+
+    const activeEffectivePrices = variants
       .filter((variant) => variant.is_active)
-      .map((variant) => amount(variant.price));
-    const min = prices.length ? Decimal.min(...prices).toFixed(2) : "0.00";
+      .map((variant) => amount(variant.effective_price));
+    const effectiveMin = activeEffectivePrices.length
+      ? Decimal.min(...activeEffectivePrices).toFixed(2)
+      : "0.00";
+
+    const activeOriginalPrices = variants
+      .filter((variant) => variant.is_active)
+      .map((variant) => amount(variant.original_price));
+    const originalMin = activeOriginalPrices.length
+      ? Decimal.min(...activeOriginalPrices).toFixed(2)
+      : "0.00";
+
     return {
       ...product,
-      min_price: product.min_price ?? min,
-      display_price: product.display_price ?? min,
+      variants,
+      min_price: money(effectiveMin),
+      display_price: money(effectiveMin),
+      original_min_price: money(originalMin),
+      has_active_offer: hasAnyOffer,
+      offer_badge: primaryBadge || (hasAnyOffer ? `${maxDiscountPercent}% OFF` : null),
+      max_discount_percentage: maxDiscountPercent,
       media_urls: (product.media_ids || [])
         .map((id) => urls.get(id))
         .filter(Boolean),

@@ -29,6 +29,7 @@ import {
   contactRoutes,
 } from "./routes/admin.js";
 import { mediaRoutes } from "./routes/media.js";
+import { offerRoutes } from "./routes/offers.js";
 import { sendPendingEmails } from "./documents.js";
 import { serveFrontend } from "./frontend.js";
 
@@ -170,6 +171,7 @@ export function createApp(context) {
     ["settings", settingsRoutes],
     ["reviews", reviewRoutes],
     ["notifications", notificationRoutes],
+    ["offers", offerRoutes],
   ]) {
     app.use(`/api/v1/${prefix}`, routes(context));
     app.use(`/api/v1/admin/${prefix}`, routes(context, true));
@@ -265,6 +267,8 @@ export async function initializeIndexes(db) {
       { order_id: 1, node_version: 1 },
       { unique: true, partialFilterExpression: { node_version: 1 } },
     ],
+    ["offers", { status: 1, is_deleted: 1, created_at: -1 }, {}],
+    ["offers", { "items.variant_id": 1, status: 1 }, {}],
     [
       "carts",
       { owner_key: 1 },

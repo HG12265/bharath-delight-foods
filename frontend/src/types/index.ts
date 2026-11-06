@@ -43,6 +43,14 @@ export interface ProductVariant {
   price: number;
   stock_status: "in_stock" | "out_of_stock";
   is_active: boolean;
+  original_price?: number;
+  offer_price?: number | null;
+  effective_price?: number;
+  discount_amount?: number;
+  discount_percentage?: number;
+  has_offer?: boolean;
+  offer_title?: string | null;
+  offer_badge?: string | null;
 }
 
 export interface SourcingDetails {
@@ -91,6 +99,12 @@ export interface Product {
   search_keywords: string[];
   is_featured: boolean;
   status: "draft" | "active" | "archived";
+  min_price?: number;
+  display_price?: number;
+  original_min_price?: number;
+  has_active_offer?: boolean;
+  offer_badge?: string | null;
+  max_discount_percentage?: number;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +116,12 @@ export interface CartProductSummary {
   media_urls?: string[];
   image_url?: string;
   price: number;
+  original_price?: number;
+  has_offer?: boolean;
+  offer_badge?: string | null;
+  discount_amount?: number | string;
+  discount_percentage?: number;
+  offer_title?: string | null;
   sku: string;
   stock_status: string;
   volume_weight?: string;
@@ -115,6 +135,10 @@ export interface CartItem {
   sku: string;
   quantity: number;
   unit_price_snapshot: number;
+  original_price?: number;
+  has_offer?: boolean;
+  offer_badge?: string | null;
+  discount_amount?: number | string;
   added_at: string;
   updated_at: string;
   product_summary?: CartProductSummary;
@@ -122,6 +146,7 @@ export interface CartItem {
 
 export interface CartSummary {
   subtotal: number;
+  total_discount?: number | string;
   item_count: number;
   quantity_total: number;
 }
@@ -478,5 +503,73 @@ export interface Wishlist {
 export interface Session {
   authenticated: boolean;
   user: User | null;
+}
+
+export interface OfferItem {
+  product_id: string;
+  product_name: string;
+  product_slug?: string;
+  variant_id: string;
+  variant_sku: string;
+  variant_title: string;
+  original_price: number;
+  discount_type: "percentage" | "fixed";
+  discount_value: number;
+  offer_price: number;
+}
+
+export interface Offer {
+  id: string;
+  title: string;
+  badge_text: string;
+  description?: string;
+  status: "active" | "draft" | "disabled" | "cancelled";
+  items: OfferItem[];
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  is_deleted?: boolean;
+}
+
+export interface OfferStats {
+  total: number;
+  active: number;
+  disabled: number;
+  draft: number;
+  cancelled: number;
+}
+
+export interface CreateOfferPayload {
+  title: string;
+  badge_text: string;
+  description?: string;
+  status?: "active" | "draft";
+  items: Array<{
+    product_id: string;
+    product_name?: string;
+    product_slug?: string;
+    variant_id: string;
+    variant_sku?: string;
+    variant_title?: string;
+    discount_type: "percentage" | "fixed";
+    discount_value: number;
+  }>;
+}
+
+export interface UpdateOfferPayload {
+  title?: string;
+  badge_text?: string;
+  description?: string;
+  status?: "active" | "disabled" | "draft" | "cancelled";
+  items?: Array<{
+    product_id: string;
+    product_name?: string;
+    product_slug?: string;
+    variant_id: string;
+    variant_sku?: string;
+    variant_title?: string;
+    discount_type: "percentage" | "fixed";
+    discount_value: number;
+  }>;
 }
 

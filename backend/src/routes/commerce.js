@@ -25,6 +25,7 @@ import {
   audit,
   notify,
   transaction,
+  getActiveOffersMap,
 } from "../core.js";
 
 export async function variantFor(db, item, session, requireStock = true) {
@@ -141,6 +142,7 @@ async function cartView(db, cart, wishlist = false) {
     products.map((product) => [String(product._id), product]),
   );
   let subtotal = amount(0);
+  let totalDiscount = amount(0);
   let total = 0;
   const items = [];
   for (const item of cart.items) {
@@ -154,6 +156,13 @@ async function cartView(db, cart, wishlist = false) {
       (!product || product.status !== "active" || !variant?.is_active)
     )
       continue;
+
+    const effectivePrice = variant?.effective_price || variant?.price || item.unit_price_snapshot;
+    const originalPrice = variant?.original_price || variant?.price || item.unit_price_snapshot;
+    const hasOffer = Boolean(variant?.has_offer);
+    const offerBadge = variant?.offer_badge || null;
+    const discountAmt = variant?.discount_amount ? amount(variant.discount_amount) : amount(0);
+
     const summary = variant
       ? {
           name: product.name,
@@ -161,7 +170,13 @@ async function cartView(db, cart, wishlist = false) {
           media_ids: product.media_ids,
           media_urls: product.media_urls,
           image_url: product.media_urls?.[0] || null,
-          price: variant.price,
+          price: effectivePrice,
+          original_price: originalPrice,
+          has_offer: hasOffer,
+          offer_badge: offerBadge,
+          discount_amount: discountAmt.toString(),
+          discount_percentage: variant.discount_percentage || 0,
+          offer_title: variant.offer_title || null,
           sku: variant.sku,
           stock_status:
             product.status === "active" && variant.is_active
@@ -172,9 +187,20 @@ async function cartView(db, cart, wishlist = false) {
           title: variant.title || variant.volume_weight,
         }
       : null;
-    items.push({ ...item, product_summary: summary });
+
+    items.push({
+      ...item,
+      unit_price_snapshot: effectivePrice,
+      original_price: originalPrice,
+      has_offer: hasOffer,
+      offer_badge: offerBadge,
+      product_summary: summary,
+    });
     subtotal = subtotal.plus(
-      amount(item.unit_price_snapshot).times(item.quantity || 0),
+      amount(effectivePrice).times(item.quantity || 0),
+    );
+    totalDiscount = totalDiscount.plus(
+      amount(originalPrice).minus(amount(effectivePrice)).times(item.quantity || 0),
     );
     total += item.quantity || 0;
   }
@@ -186,6 +212,7 @@ async function cartView(db, cart, wishlist = false) {
       : {
           summary: {
             subtotal: subtotal.toFixed(2),
+            total_discount: totalDiscount.toFixed(2),
             item_count: items.length,
             quantity_total: total,
           },
@@ -209,9 +236,18 @@ export function cartRoutes(context) {
         );
         const quantity = (existing?.quantity || 0) + req.body.quantity;
         if (quantity > 1000) fail("Maximum item quantity exceeded.");
+        const activeOffersMap = await getActiveOffersMap(db, session);
+        const offerInfo = activeOffersMap.get(variant.variant_id);
+        const effectivePrice =
+          offerInfo &&
+          offerInfo.offer_price > 0 &&
+          offerInfo.offer_price < Number(amount(variant.price))
+            ? money(offerInfo.offer_price)
+            : variant.price;
+
         if (existing) {
           existing.quantity = quantity;
-          existing.unit_price_snapshot = variant.price;
+          existing.unit_price_snapshot = effectivePrice;
           existing.updated_at = now();
         } else
           items.push({
@@ -219,7 +255,7 @@ export function cartRoutes(context) {
             variant_id: variant.variant_id,
             sku: variant.sku,
             quantity: req.body.quantity,
-            unit_price_snapshot: variant.price,
+            unit_price_snapshot: effectivePrice,
             added_at: now(),
             updated_at: now(),
           });
@@ -231,9 +267,18 @@ export function cartRoutes(context) {
         if (!item) fail("Cart item not found.", 404);
         if (req.body.quantity > 1000) fail("Maximum item quantity exceeded.");
         const { variant } = await variantFor(db, item, session);
+        const activeOffersMap = await getActiveOffersMap(db, session);
+        const offerInfo = activeOffersMap.get(variant.variant_id);
+        const effectivePrice =
+          offerInfo &&
+          offerInfo.offer_price > 0 &&
+          offerInfo.offer_price < Number(amount(variant.price))
+            ? money(offerInfo.offer_price)
+            : variant.price;
+
         Object.assign(item, {
           quantity: req.body.quantity,
-          unit_price_snapshot: variant.price,
+          unit_price_snapshot: effectivePrice,
           updated_at: now(),
         });
       }
@@ -719,6 +764,7 @@ export function checkoutRoutes(context) {
         }
         const items = [];
         let subtotal = amount(0);
+        const activeOffersMap = await getActiveOffersMap(db, session);
         for (const item of cart.items) {
           const { variant } = await variantFor(db, item, session, false);
           const inventory = await db
@@ -739,15 +785,27 @@ export function checkoutRoutes(context) {
             session,
             req,
           );
+          const offerInfo = activeOffersMap.get(variant.variant_id);
+          const effectivePrice =
+            offerInfo &&
+            offerInfo.offer_price > 0 &&
+            offerInfo.offer_price < Number(amount(variant.price))
+              ? money(offerInfo.offer_price)
+              : variant.price;
+
           items.push({
             product_id: item.product_id,
             variant_id: variant.variant_id,
             sku: variant.sku,
             quantity: item.quantity,
-            price: variant.price,
+            price: effectivePrice,
+            original_price: variant.price,
+            has_offer: Boolean(offerInfo),
+            offer_title: offerInfo?.offer_title || null,
+            offer_badge: offerInfo?.badge_text || null,
             reserved_warehouse_id: warehouse.warehouse_id,
           });
-          subtotal = subtotal.plus(amount(variant.price).times(item.quantity));
+          subtotal = subtotal.plus(amount(effectivePrice).times(item.quantity));
         }
         const store = await settings(db, session);
         const checkout = await insert(

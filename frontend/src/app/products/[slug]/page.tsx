@@ -97,7 +97,13 @@ export default function ProductDetailPage({ params }: PageProps) {
   const variants = product.variants || [];
   const selectedVariant = variants[selectedVariantIndex] || null;
 
-  const priceValue = selectedVariant?.price || 0;
+  const hasOffer = Boolean(selectedVariant?.has_offer);
+  const effectivePrice = selectedVariant?.offer_price || selectedVariant?.effective_price || selectedVariant?.price || 0;
+  const originalPrice = selectedVariant?.original_price || selectedVariant?.price || 0;
+  const offerBadge = selectedVariant?.offer_badge || "SPECIAL OFFER";
+  const discountAmount = selectedVariant?.discount_amount || (originalPrice - effectivePrice);
+  const discountPercent = selectedVariant?.discount_percentage || 0;
+
   const volumeText = selectedVariant?.volume_weight || selectedVariant?.title || "Standard";
   const regionName = product.sourcing?.region || "Tamil Nadu";
   const descriptionText = product.description;
@@ -257,12 +263,29 @@ export default function ProductDetailPage({ params }: PageProps) {
                   <span className="px-2.5 py-1 bg-deodharForest text-richCream text-[9px] uppercase tracking-widest font-semibold rounded-[2px] shadow-sm border border-burnishedGold/25">
                     {regionName}
                   </span>
+                  {hasOffer && (
+                    <span className="px-2.5 py-1 bg-[#0F3D2E] text-white border border-[#C89B3C] text-[9px] uppercase tracking-widest font-bold rounded-[2px] shadow-sm">
+                      🏷️ {offerBadge}
+                    </span>
+                  )}
                 </div>
                 <h1 className="font-serif text-3xl sm:text-4xl font-bold text-deodharForest leading-tight">
                   {product.name}
                 </h1>
-                <div className="font-sans text-2xl font-bold text-indianInk mt-1">
-                  {formatINR(priceValue)}
+                <div className="flex flex-wrap items-baseline gap-3 mt-1 font-sans">
+                  <span className="text-3xl font-bold text-[#0F3D2E]">
+                    {formatINR(effectivePrice)}
+                  </span>
+                  {hasOffer && originalPrice > effectivePrice && (
+                    <>
+                      <span className="text-xl text-indianInk/40 line-through">
+                        {formatINR(originalPrice)}
+                      </span>
+                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded font-bold text-xs">
+                        SAVE {formatINR(discountAmount)} {discountPercent > 0 ? `(${discountPercent}% OFF)` : ""}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -283,6 +306,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     {isDbAvailable && variants.length > 0 ? (
                       variants.map((v: any, idx: number) => {
                         const isSelected = idx === selectedVariantIndex;
+                        const vHasOffer = Boolean(v.has_offer);
                         return (
                           <button
                             key={v.variant_id}
@@ -290,13 +314,18 @@ export default function ProductDetailPage({ params }: PageProps) {
                               setSelectedVariantIndex(idx);
                               setQuantity(1); // Reset quantity to 1 when changing size
                             }}
-                            className={`px-4 py-2.5 rounded-[4px] font-sans text-xs font-bold uppercase tracking-wider border-2 transition-all ${
+                            className={`px-4 py-2.5 rounded-[4px] font-sans text-xs font-bold uppercase tracking-wider border-2 transition-all flex items-center gap-1.5 ${
                               isSelected
                                 ? "border-gheeGold bg-[#FFFDF0] text-deodharForest shadow-sm font-black"
                                 : "border-burnishedGold/15 hover:border-gheeGold/40 text-indianInk/70 bg-white"
                             }`}
                           >
-                            {v.volume_weight || v.title}
+                            <span>{v.volume_weight || v.title}</span>
+                            {vHasOffer && (
+                              <span className="px-1 py-0.5 bg-[#0F3D2E] text-white text-[8px] rounded uppercase font-bold">
+                                SALE
+                              </span>
+                            )}
                           </button>
                         );
                       })

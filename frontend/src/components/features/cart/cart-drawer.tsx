@@ -138,6 +138,9 @@ export const CartDrawer: React.FC = () => {
                 const imageSrc = rawImage || fallbackImage;
                 const variantName = item.product_summary?.variant_title || item.product_summary?.volume_weight || "Standard";
                 const itemPrice = item.unit_price_snapshot || 0;
+                const originalPrice = item.original_price || item.product_summary?.original_price || itemPrice;
+                const hasOffer = Boolean(item.has_offer || (originalPrice > itemPrice));
+                const offerBadge = item.offer_badge || item.product_summary?.offer_badge;
                 const itemTotal = itemPrice * item.quantity;
 
                 return (
@@ -171,9 +174,16 @@ export const CartDrawer: React.FC = () => {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <p className="text-[10px] text-indianInk/60 font-sans tracking-wider uppercase font-semibold">
-                          Size: {variantName}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="text-[10px] text-indianInk/60 font-sans tracking-wider uppercase font-semibold">
+                            Size: {variantName}
+                          </p>
+                          {hasOffer && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                              🏷️ {offerBadge || "Offer"}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex justify-between items-center pt-2">
@@ -199,8 +209,15 @@ export const CartDrawer: React.FC = () => {
                         </div>
 
                         {/* Unit price / Total price */}
-                        <div className="text-right font-sans text-xs font-bold text-indianInk">
-                          {formatINR(itemTotal)}
+                        <div className="text-right font-sans">
+                          <div className="text-xs font-bold text-[#0F3D2E]">
+                            {formatINR(itemTotal)}
+                          </div>
+                          {hasOffer && originalPrice > itemPrice && (
+                            <div className="text-[10px] text-indianInk/40 line-through">
+                              {formatINR(originalPrice * item.quantity)}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -214,6 +231,17 @@ export const CartDrawer: React.FC = () => {
         {/* Footer Subtotal & Checkout */}
         {items.length > 0 && (
           <div className="p-6 border-t border-burnishedGold/15 bg-white shadow-2xl flex flex-col gap-4">
+            {parseFloat(String(cart?.summary?.total_discount ?? 0)) > 0 && (
+              <div className="flex justify-between items-center font-sans text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded">
+                <span className="font-semibold flex items-center gap-1">
+                  🎉 Total Offer Savings:
+                </span>
+                <span className="font-bold">
+                  -{formatINR(parseFloat(String(cart?.summary?.total_discount)))}
+                </span>
+              </div>
+            )}
+
             <div className="flex justify-between items-center font-sans">
               <span className="text-xs uppercase tracking-widest text-indianInk/60 font-semibold">Subtotal</span>
               <span className="text-base font-bold text-deodharForest">{formatINR(subtotal)}</span>
