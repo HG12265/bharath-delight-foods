@@ -13,12 +13,20 @@ export const useProductReviews = (productId: string) => {
   });
 };
 
+export const useMyReviews = () => {
+  return useQuery({
+    queryKey: ["reviews", "me"],
+    queryFn: () => reviewService.getMyReviews(),
+  });
+};
+
 export const useSubmitReview = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: ReviewCreatePayload) => reviewService.submitReview(payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["reviews", "product", variables.product_id] });
+      queryClient.invalidateQueries({ queryKey: ["reviews", "me"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
     },
   });

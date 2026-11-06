@@ -38,6 +38,11 @@ export interface ListReviewsParams {
 }
 
 export const reviewService = {
+  async getMyReviews(): Promise<Envelope<Review[]>> {
+    const response = await apiClient.get<Envelope<Review[]>>("/api/v1/reviews/me");
+    return response.data;
+  },
+
   async submitReview(payload: ReviewCreatePayload): Promise<Envelope<Review>> {
     const response = await apiClient.post<Envelope<Review>>("/api/v1/reviews", payload);
     return response.data;

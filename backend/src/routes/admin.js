@@ -205,6 +205,18 @@ export function reviewRoutes(context, admin = false) {
       });
     return router;
   }
+  router.get("/me", authenticated, async (req, res) => {
+    const customerId = String(req.user._id);
+    const documents = await db
+      .collection("reviews")
+      .find({ customer_id: customerId, ...active })
+      .sort({ created_at: -1 })
+      .toArray();
+    ok(
+      res,
+      documents.map((doc) => ({ ...doc, id: String(doc._id) })),
+    );
+  });
   router.get("/product/:product_id", async (req, res) => {
     const product = await get(db, "products", req.params.product_id);
     ok(res, {

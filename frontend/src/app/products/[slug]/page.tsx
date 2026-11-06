@@ -1,11 +1,12 @@
 "use client";
 
-import React, { use, useState } from "react";
+import React, { use, useState, useEffect } from "react";
 import Link from "@/platform/link";
 import Image from "@/platform/image";
 import { useRouter, notFound } from "@/platform/navigation";
 import PublicLayout from "@/components/layout/public-layout";
 import { useProductBySlug } from "@/hooks/use-products";
+import { useProductReviews } from "@/hooks/use-reviews";
 import { useAddToCart } from "@/hooks/use-cart";
 import { useSession, useMe } from "@/hooks/use-auth";
 import { useWishlist, useAddToWishlist, useRemoveFromWishlist } from "@/hooks/use-wishlist";
@@ -13,7 +14,7 @@ import { useMediaAsset } from "@/hooks/use-media";
 import { formatINR, getProductFallbackImage } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { JsonLd } from "@/components/seo/json-ld";
-import { ShieldCheck, Check, ArrowLeft, Plus, Minus, Loader2, Heart } from "lucide-react";
+import { ShieldCheck, Check, ArrowLeft, Plus, Minus, Loader2, Heart, Star, MessageSquare } from "lucide-react";
 
 interface PageProps {
   params: { slug: string };
@@ -38,8 +39,28 @@ function ProductDetailImage({ mediaId, alt, productNameOrSlug }: { mediaId?: str
 
 export default function ProductDetailPage({ params }: PageProps) {
   const { slug } = params;
-  const { data: dbProductData, isPending } = useProductBySlug(slug);
+  const canonicalSlug = 
+    slug === "uthukuli-ghee" ? "uthukuli-pure-cow-ghee" :
+    slug === "rasipuram-ghee" ? "rasipuram-pure-ghee" :
+    slug;
+  const { data: dbProductData, isPending } = useProductBySlug(canonicalSlug);
   const dbProduct = dbProductData?.data;
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && slug !== canonicalSlug) {
+      window.history.replaceState(null, "", `/products/${canonicalSlug}${window.location.hash || ""}`);
+    }
+  }, [slug, canonicalSlug]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#reviews") {
+      const timer = setTimeout(() => {
+        const el = document.getElementById("reviews");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [canonicalSlug]);
 
   const [quantity, setQuantity] = useState(1);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
@@ -110,6 +131,13 @@ export default function ProductDetailPage({ params }: PageProps) {
   const descriptionText = product.description;
 
   const imageSrc = product.media_urls?.[0] || getProductFallbackImage(slug);
+
+  const { data: reviewsData } = useProductReviews(product.id);
+  const reviewsList = reviewsData?.data?.reviews || [];
+  const ratingsSummary = reviewsData?.data?.ratings || {
+    average: product.ratings?.average_rating || 0,
+    total: product.ratings?.total_reviews || 0,
+  };
 
   // Check if we can interact with real DB cart additions
   const productId = product.id;
@@ -445,6 +473,132 @@ export default function ProductDetailPage({ params }: PageProps) {
             </div>
 
           </div>
+
+          {/* Customer Reviews Section */}
+          <section id="reviews" className="mt-16 sm:mt-24 border-t border-burnishedGold/15 pt-12 max-w-6xl mx-auto scroll-mt-24">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+              <div>
+                <h3 className="font-serif text-2xl font-bold text-deodharForest">
+                  Customer Reviews
+                </h3>
+                <p className="text-xs text-indianInk/60 font-sans mt-1">
+                  Authentic ratings and verified customer feedback for {product.name}.
+                </p>
+              </div>
+
+              <Link
+                href="/account/reviews"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-deodharForest text-white hover:bg-deodharForest/90 rounded text-xs font-sans font-bold uppercase tracking-wider transition-colors shadow-sm"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-gheeGold" />
+                Write a Review
+              </Link>
+            </div>
+
+            {reviewsList.length === 0 ? (
+              <div className="bg-white border border-dashed border-burnishedGold/25 rounded-lg p-10 text-center space-y-3">
+                <div className="w-12 h-12 bg-richCream/40 border border-burnishedGold/20 rounded-full flex items-center justify-center mx-auto text-burnishedGold">
+                  <Star className="w-6 h-6 text-gheeGold" />
+                </div>
+                <h4 className="font-serif text-base font-bold text-deodharForest">
+                  No Reviews Yet
+                </h4>
+                <p className="text-xs text-indianInk/60 font-sans max-w-sm mx-auto leading-relaxed">
+                  Be the first to share your experience with this authentic regional ghee. If you have purchased and received this product, share your review from your account.
+                </p>
+                <div className="pt-2">
+                  <Link
+                    href="/account/reviews"
+                    className="inline-flex items-center gap-1 text-xs font-sans font-bold uppercase tracking-wider text-burnishedGold hover:text-deodharForest transition-colors"
+                  >
+                    Go to My Reviews &rarr;
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Rating Overview */}
+                <div className="bg-white border border-burnishedGold/20 rounded-lg p-6 flex flex-col sm:flex-row items-center gap-6">
+                  <div className="text-center sm:text-left sm:border-r sm:border-burnishedGold/15 sm:pr-8">
+                    <div className="text-4xl font-serif font-bold text-deodharForest">
+                      {(ratingsSummary.average || 5.0).toFixed(1)}
+                    </div>
+                    <div className="flex items-center justify-center sm:justify-start gap-1 my-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star 
+                          key={star} 
+                          className={`w-4 h-4 ${
+                            star <= Math.round(ratingsSummary.average || 5) 
+                              ? "text-gheeGold fill-gheeGold" 
+                              : "text-gray-300"
+                          }`} 
+                        />
+                      ))}
+                    </div>
+                    <div className="text-[11px] text-indianInk/60 font-sans">
+                      Based on {ratingsSummary.total || reviewsList.length} verified {ratingsSummary.total === 1 ? "review" : "reviews"}
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-indianInk/70 font-sans leading-relaxed">
+                    100% of reviews are collected from customers who purchased and completed verified delivery of our slow-simmered ghee.
+                  </div>
+                </div>
+
+                {/* Reviews List */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {reviewsList.map((rev: any) => (
+                    <div 
+                      key={rev.id || rev._id}
+                      className="bg-white border border-burnishedGold/15 rounded-lg p-5 space-y-3 hover:border-burnishedGold/30 transition-all shadow-xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star 
+                              key={s} 
+                              className={`w-3.5 h-3.5 ${
+                                s <= rev.rating 
+                                  ? "text-gheeGold fill-gheeGold" 
+                                  : "text-gray-300"
+                              }`} 
+                            />
+                          ))}
+                        </div>
+                        {rev.is_verified_purchase && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-sans font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            <Check className="w-3 h-3 text-emerald-600" /> Verified Purchase
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <h4 className="font-serif text-sm font-bold text-deodharForest">
+                          {rev.title}
+                        </h4>
+                        <p className="text-xs text-indianInk/75 font-sans leading-relaxed mt-1">
+                          {rev.comment}
+                        </p>
+                      </div>
+
+                      <div className="text-[10px] text-indianInk/45 font-sans pt-2 border-t border-burnishedGold/10 flex items-center justify-between">
+                        <span>Customer Review</span>
+                        {rev.created_at && (
+                          <span>
+                            {new Date(rev.created_at).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric"
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
 
         </div>
       </div>

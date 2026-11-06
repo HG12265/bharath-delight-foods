@@ -450,13 +450,18 @@ export function productRoutes(context) {
     });
     ok(res);
   });
-  router.get("/:slug", async (req, res) => {
+  const getProductBySlugHandler = async (req, res) => {
+    let slug = req.params.slug;
+    if (slug === "uthukuli-ghee") slug = "uthukuli-pure-cow-ghee";
+    if (slug === "rasipuram-ghee") slug = "rasipuram-pure-ghee";
     const product = await db
       .collection("products")
-      .findOne({ slug: req.params.slug, status: "active", ...active });
+      .findOne({ slug, status: "active", ...active });
     if (!product) fail("Product not found.", 404);
     ok(res, (await productViews(db, [product]))[0]);
-  });
+  };
+  router.get("/slug/:slug", getProductBySlugHandler);
+  router.get("/:slug", getProductBySlugHandler);
   return router;
 }
 export function searchRoutes({ db }) {
