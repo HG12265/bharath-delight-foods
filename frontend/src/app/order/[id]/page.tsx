@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "@/platform/link";
 import Image from "@/platform/image";
-import { useParams, useSearchParams, useRouter } from "@/platform/navigation";
+import { useParams, useSearchParams } from "@/platform/navigation";
 import PublicLayout from "@/components/layout/public-layout";
 import { useOrderDetails } from "@/hooks/use-orders";
 import {
@@ -31,7 +31,6 @@ import {
 export default function OrderDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const orderId = params?.id as string;
 
   const { data: orderData, isPending: isOrderPending, isError: isOrderError, refetch: refetchOrder } = useOrderDetails(orderId);
@@ -54,7 +53,6 @@ export default function OrderDetailsPage() {
   // Component states
   const [phonePeError, setPhonePeError] = useState<string | null>(null);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
-  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
 
   // Invoice Download states
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
@@ -74,24 +72,8 @@ export default function OrderDetailsPage() {
     if (isConfirmed && (isFromPhonePe || showSuccessBanner)) {
       clearCartMutation.mutate(undefined);
       setShowSuccessBanner(true);
-      if (redirectCountdown === null) {
-        setRedirectCountdown(3);
-      }
     }
-  }, [isConfirmed, isFromPhonePe, showSuccessBanner, redirectCountdown, clearCartMutation]);
-
-  // 3-second automatic redirect to products (/shop)
-  useEffect(() => {
-    if (redirectCountdown === null) return;
-    if (redirectCountdown <= 0) {
-      router.push("/shop");
-      return;
-    }
-    const timer = setTimeout(() => {
-      setRedirectCountdown((prev) => (prev !== null ? prev - 1 : null));
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [redirectCountdown, router]);
+  }, [isConfirmed, isFromPhonePe, showSuccessBanner, clearCartMutation]);
 
   const handleDownloadInvoice = async () => {
     if (!order) return;
@@ -221,19 +203,14 @@ export default function OrderDetailsPage() {
                       We have received your payment via PhonePe Payment Gateway. Our team is carefully preparing your authentic delights, and your package will be delivered to your doorstep soon!
                     </p>
 
-                    {/* 3-Second Automatic Redirect Notice */}
-                    {redirectCountdown !== null && (
-                      <div className="mt-3.5 flex flex-wrap items-center gap-2 p-2.5 bg-white/90 border border-[#2E7D32]/30 rounded-lg text-[#1E352F] text-xs font-semibold shadow-xs">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#2E7D32] shrink-0" />
-                        <span>Redirecting to products in <strong className="text-[#2E7D32] font-bold text-sm">{redirectCountdown}s</strong>...</span>
-                        <Link
-                          href="/shop"
-                          className="ml-auto inline-flex items-center gap-1 text-[11px] uppercase tracking-wider text-[#2E7D32] hover:text-[#1E352F] font-bold underline transition-colors"
-                        >
-                          <ShoppingBag className="w-3 h-3" /> Go to Products Now
-                        </Link>
-                      </div>
-                    )}
+                    <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                      <Link
+                        href="/shop"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-[#2E7D32] hover:bg-[#1E352F] text-white text-xs font-semibold tracking-wider uppercase transition-colors shadow-xs"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" /> Continue Shopping
+                      </Link>
+                    </div>
                   </div>
                   <button
                     onClick={() => setShowSuccessBanner(false)}
