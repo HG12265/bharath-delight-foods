@@ -10,8 +10,7 @@ export const RegisterForm: React.FC = () => {
   const registerMutation = useRegister();
   const loginMutation = useLogin();
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -45,14 +44,10 @@ export const RegisterForm: React.FC = () => {
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
 
-    if (!firstName.trim()) {
-      errors.first_name = "First name is required";
-    } else if (firstName.trim().length < 2) {
-      errors.first_name = "First name must be at least 2 characters";
-    }
-
-    if (!lastName.trim()) {
-      errors.last_name = "Last name is required";
+    if (!fullName.trim()) {
+      errors.first_name = "Full name is required";
+    } else if (fullName.trim().length < 2) {
+      errors.first_name = "Full name must be at least 2 characters";
     }
 
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -87,8 +82,7 @@ export const RegisterForm: React.FC = () => {
 
     registerMutation.mutate(
       {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
+        first_name: fullName.trim(),
         email: email.trim() || undefined,
         phone_number: formattedPhone,
         password,
@@ -152,63 +146,32 @@ export const RegisterForm: React.FC = () => {
         </div>
       )}
 
-      {/* First & Last Name row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-        {/* First Name */}
-        <div className="flex flex-col gap-2 w-full">
-          <label className="text-sm font-medium tracking-wide uppercase text-indianInk/80 font-sans">
-            First Name
-          </label>
-          <input
-            type="text"
-            disabled={isPending || success}
-            value={firstName}
-            onChange={(e) => {
-              setFirstName(e.target.value);
-              if (validationErrors.first_name) {
-                setValidationErrors((prev) => ({ ...prev, first_name: "" }));
-              }
-            }}
-            placeholder="First Name"
-            className={`w-full px-4 py-3 bg-white text-indianInk border rounded-[4px] font-sans text-base transition-colors duration-200 focus-visible:outline-none focus-visible:border-burnishedGold focus-visible:ring-1 focus-visible:ring-burnishedGold ${validationErrors.first_name
-                ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive"
-                : "border-indianInk/20"
-              }`}
-          />
-          {validationErrors.first_name && (
-            <span className="text-xs text-destructive font-sans font-medium mt-1">
-              {validationErrors.first_name}
-            </span>
-          )}
-        </div>
-
-        {/* Last Name */}
-        <div className="flex flex-col gap-2 w-full">
-          <label className="text-sm font-medium tracking-wide uppercase text-indianInk/80 font-sans">
-            Last Name
-          </label>
-          <input
-            type="text"
-            disabled={isPending || success}
-            value={lastName}
-            onChange={(e) => {
-              setLastName(e.target.value);
-              if (validationErrors.last_name) {
-                setValidationErrors((prev) => ({ ...prev, last_name: "" }));
-              }
-            }}
-            placeholder="Last Name"
-            className={`w-full px-4 py-3 bg-white text-indianInk border rounded-[4px] font-sans text-base transition-colors duration-200 focus-visible:outline-none focus-visible:border-burnishedGold focus-visible:ring-1 focus-visible:ring-burnishedGold ${validationErrors.last_name
-                ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive"
-                : "border-indianInk/20"
-              }`}
-          />
-          {validationErrors.last_name && (
-            <span className="text-xs text-destructive font-sans font-medium mt-1">
-              {validationErrors.last_name}
-            </span>
-          )}
-        </div>
+      {/* Full Name */}
+      <div className="flex flex-col gap-2 w-full">
+        <label className="text-sm font-medium tracking-wide uppercase text-indianInk/80 font-sans">
+          Full Name
+        </label>
+        <input
+          type="text"
+          disabled={isPending || success}
+          value={fullName}
+          onChange={(e) => {
+            setFullName(e.target.value);
+            if (validationErrors.first_name) {
+              setValidationErrors((prev) => ({ ...prev, first_name: "" }));
+            }
+          }}
+          placeholder="Enter your full name"
+          className={`w-full px-4 py-3 bg-white text-indianInk border rounded-[4px] font-sans text-base transition-colors duration-200 focus-visible:outline-none focus-visible:border-burnishedGold focus-visible:ring-1 focus-visible:ring-burnishedGold ${validationErrors.first_name
+              ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive"
+              : "border-indianInk/20"
+            }`}
+        />
+        {validationErrors.first_name && (
+          <span className="text-xs text-destructive font-sans font-medium mt-1">
+            {validationErrors.first_name}
+          </span>
+        )}
       </div>
 
       {/* Email Address */}

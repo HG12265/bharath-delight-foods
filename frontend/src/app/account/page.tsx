@@ -177,19 +177,10 @@ export default function AccountPage() {
               <div className="space-y-3 font-sans text-xs">
                 <div>
                   <span className="text-indianInk/50 block font-semibold uppercase tracking-wider text-[9px]">
-                    First Name
+                    Full Name
                   </span>
                   <span className="text-sm font-semibold text-indianInk">
                     {user.personal_details?.first_name || "N/A"}
-                  </span>
-                </div>
-                
-                <div>
-                  <span className="text-indianInk/50 block font-semibold uppercase tracking-wider text-[9px]">
-                    Last Name
-                  </span>
-                  <span className="text-sm font-semibold text-indianInk">
-                    {user.personal_details?.last_name || "N/A"}
                   </span>
                 </div>
 

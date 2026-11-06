@@ -153,7 +153,9 @@ export function authRoutes(context) {
           refresh_token_hash: null,
           role: "customer",
         },
-        personal_details: pick(body, ["first_name", "last_name"]),
+        personal_details: {
+          first_name: body.first_name.trim(),
+        },
         addresses: [],
         b2b_profile: null,
       });
@@ -367,8 +369,7 @@ export function authRoutes(context) {
             status: "active",
           },
           personal_details: {
-            first_name: payload.given_name || payload.name,
-            last_name: payload.family_name || "",
+            first_name: payload.name || payload.given_name || "Valued Customer",
             avatar_url: payload.picture,
           },
           addresses: [],
