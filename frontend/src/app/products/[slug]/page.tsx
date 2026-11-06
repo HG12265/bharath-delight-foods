@@ -79,6 +79,9 @@ export default function ProductDetailPage({ params }: PageProps) {
   const addToWishlistMutation = useAddToWishlist();
   const removeFromWishlistMutation = useRemoveFromWishlist();
 
+  // Call all hooks unconditionally at top before any early return
+  const { data: reviewsData } = useProductReviews(dbProduct?.id || "");
+
   // Handle Next.js loading state
   if (isPending) {
     return (
@@ -132,7 +135,6 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const imageSrc = product.media_urls?.[0] || getProductFallbackImage(slug);
 
-  const { data: reviewsData } = useProductReviews(product.id);
   const reviewsList = reviewsData?.data?.reviews || [];
   const ratingsSummary = reviewsData?.data?.ratings || {
     average: product.ratings?.average_rating || 0,
@@ -180,21 +182,6 @@ export default function ProductDetailPage({ params }: PageProps) {
       }
     );
   };
-
-  if (isPending) {
-    return (
-      <PublicLayout>
-        <div className="min-h-screen bg-richCream flex flex-col justify-center items-center font-sans py-16">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-10 h-10 text-burnishedGold animate-spin" />
-            <p className="text-indianInk/60 text-xs tracking-wider uppercase font-semibold">
-              Loading Product Details...
-            </p>
-          </div>
-        </div>
-      </PublicLayout>
-    );
-  }
 
   // --- JSON-LD Structured Data (Product + Breadcrumb) ---
   const jsonLdProduct = isDbAvailable
