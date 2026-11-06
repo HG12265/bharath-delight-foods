@@ -3,6 +3,7 @@
 import React from "react";
 import Header from "../navigation/header";
 import Footer from "../navigation/footer";
+import MobileBottomNav from "../navigation/mobile-bottom-nav";
 import dynamic from "@/platform/dynamic";
 
 const CartDrawer = dynamic(() => import("../features/cart/cart-drawer"), {
@@ -24,12 +25,15 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children, hideFooter
       <CartDrawer />
 
       {/* Main Content Area */}
-      <main className="flex-grow">
+      <main className="flex-grow pb-16 md:pb-0">
         {children}
       </main>
 
       {/* Shared Footer */}
       {!hideFooter && <Footer />}
+
+      {/* Fixed Mobile Bottom Navbar (Mobile Only) */}
+      <MobileBottomNav />
     </div>
   );
 };

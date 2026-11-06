@@ -185,7 +185,7 @@ export const Header: React.FC = () => {
                             Signed In
                           </p>
                           <p className="text-xs font-bold text-[#1E352F] truncate">
-                            {user.personal_details?.first_name || "Valued"} {user.personal_details?.last_name || "Customer"}
+                            {user.personal_details?.first_name || "Valued Customer"}
                           </p>
                           <p className="text-[11px] text-[#1E352F]/60 truncate font-sans">
                             {user.email || user.phone}

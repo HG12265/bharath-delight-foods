@@ -86,7 +86,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose, user }) =
                 Namaskaram
               </p>
               <p className="text-sm font-serif font-bold text-deodharForest truncate">
-                {user.personal_details?.first_name || "Valued"} {user.personal_details?.last_name || "Customer"}
+                {user.personal_details?.first_name || "Valued Customer"}
               </p>
               <p className="text-[11px] text-indianInk/60 truncate font-sans">
                 {user.email || user.phone}
