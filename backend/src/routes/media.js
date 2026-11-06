@@ -17,9 +17,9 @@ import {
   validate,
 } from "../core.js";
 
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "g8cdkkj6";
-const apiKey = process.env.CLOUDINARY_API_KEY || "365267442955668";
-const apiSecret = process.env.CLOUDINARY_API_SECRET || "5r56jMIbxOnuw5RPT03pansb_70";
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
 if (cloudName && apiKey && apiSecret) {
   cloudinary.config({
