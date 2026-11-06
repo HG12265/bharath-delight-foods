@@ -625,13 +625,13 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="bg-[#FAF9F6] border border-burnishedGold/10 rounded p-3 flex gap-2.5 items-start">
-                    <CreditCard className="w-4 h-4 text-burnishedGold mt-0.5 shrink-0" />
+                    <CreditCard className="w-4 h-4 text-[#5f259f] mt-0.5 shrink-0" />
                     <div className="space-y-0.5">
                       <p className="text-[11px] font-sans font-bold text-deodharForest uppercase tracking-wider">
-                        Manual UPI Transfer Only
+                        Instant Online Payment
                       </p>
                       <p className="text-[10px] font-sans text-indianInk/60 leading-normal">
-                        Place order now and make payment via UPI QR code or link on the next page to confirm your purchase.
+                        Pay securely via PhonePe Payment Gateway (UPI, Google Pay, PhonePe, Paytm, Cards & NetBanking).
                       </p>
                     </div>
                   </div>
