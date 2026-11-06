@@ -693,15 +693,20 @@ function priceCheckout(subtotal, discount, store) {
   };
 }
 export async function expireCheckout(db, checkout, session) {
-  for (const item of checkout.items)
-    await stockChange(
-      db,
-      item.sku,
-      item.reserved_warehouse_id,
-      item.quantity,
-      "release",
-      session,
-    );
+  for (const item of checkout.items || []) {
+    try {
+      await stockChange(
+        db,
+        item.sku,
+        item.reserved_warehouse_id,
+        item.quantity,
+        "release",
+        session,
+      );
+    } catch {
+      // Safe release: if stock was already released or warehouse reserved count was less, ignore
+    }
+  }
   return update(
     db,
     "checkouts",
@@ -751,15 +756,34 @@ export function checkoutRoutes(context) {
           )
           .toArray();
         for (const checkout of previous) {
-          if (
-            await db
-              .collection("orders")
-              .findOne(
-                { checkout_id: String(checkout._id), ...active },
-                { session },
-              )
-          )
-            fail("Cart already converted to an order.", 409);
+          const existingOrder = await db
+            .collection("orders")
+            .findOne(
+              { checkout_id: String(checkout._id), ...active },
+              { session },
+            );
+          if (existingOrder) {
+            const isSettled =
+              existingOrder.payment_status === "paid" ||
+              existingOrder.order_status === "confirmed" ||
+              Boolean(existingOrder.proof_submitted_at);
+            if (isSettled) {
+              fail("Cart already converted to an order.", 409);
+            }
+            // If previous checkout order was never paid/confirmed, supersede it cleanly
+            await update(
+              db,
+              "orders",
+              String(existingOrder._id),
+              {
+                order_status: "cancelled",
+                fulfillment_status: "cancelled",
+                cancelled_at: now(),
+                cancel_reason: "Superseded by new checkout attempt",
+              },
+              session,
+            );
+          }
           await expireCheckout(db, checkout, session);
         }
         const items = [];
