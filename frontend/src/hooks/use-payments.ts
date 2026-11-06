@@ -41,3 +41,19 @@ export const useAdminPaymentByOrder = (orderId: string, options?: { enabled?: bo
     enabled: options?.enabled !== undefined ? options.enabled && !!orderId : !!orderId,
   });
 };
+
+export const useInitiatePhonePePayment = () => {
+  return useMutation({
+    mutationFn: ({ orderId, redirectUrl }: { orderId: string; redirectUrl?: string }) =>
+      paymentService.initiatePhonePePayment(orderId, redirectUrl),
+  });
+};
+
+export const usePhonePeStatus = (orderId: string, options?: { enabled?: boolean; refetchInterval?: number | false }) => {
+  return useQuery({
+    queryKey: ["payment", "phonepe", "status", orderId],
+    queryFn: () => paymentService.getPhonePeStatus(orderId),
+    enabled: options?.enabled !== undefined ? options.enabled && !!orderId : !!orderId,
+    refetchInterval: options?.refetchInterval,
+  });
+};

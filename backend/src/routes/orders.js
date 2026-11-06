@@ -32,6 +32,11 @@ import {
   getCourierUrl,
   sendPendingEmails,
 } from "../documents.js";
+import {
+  createPhonePePayment,
+  getPhonePeOrderStatus,
+  verifyPhonePeWebhookAuth,
+} from "../phonepe.js";
 
 const transitions = {
   order_status: {
@@ -683,6 +688,226 @@ export function paymentRoutes(context, admin = false) {
       ok(res, paymentView(result));
     },
   );
+
+  // --- PhonePe Payment Gateway Integration ---
+
+  // 1. Initiate PhonePe Payment
+  router.post("/phonepe/initiate/:order_id", async (req, res) => {
+    try {
+      const order = await get(db, "orders", req.params.order_id);
+      owns(req, order);
+      if (order.order_status === "cancelled") {
+        return fail("Order is cancelled.");
+      }
+      if (order.payment_status === "paid") {
+        return ok(res, { already_paid: true, status: "paid" });
+      }
+
+      const frontendOrigin =
+        process.env.FRONTEND_ORIGIN || "https://bharath-delight-foods.pages.dev";
+      const redirectUrl =
+        req.body?.redirect_url ||
+        `${frontendOrigin}/order/${order._id}?status=check`;
+
+      const sessionData = await createPhonePePayment({
+        merchantOrderId: String(order._id),
+        amountInRupees: order.pricing.grand_total,
+        redirectUrl,
+        message: `Bharath Delight Order #${order.order_number}`,
+      });
+
+      // Upsert payment tracking record
+      await db.collection("payments").updateOne(
+        { order_id: String(order._id) },
+        {
+          $set: {
+            order_id: String(order._id),
+            order_number: order.order_number,
+            customer_id: order.customer_id,
+            guest_token: order.guest_token,
+            amount: order.pricing.grand_total,
+            payment_method: "phonepe",
+            phonepe_order_id: sessionData.orderId,
+            phonepe_state: sessionData.state,
+            phonepe_redirect_url: sessionData.redirectUrl,
+            status: "pending",
+            updated_at: now(),
+          },
+          $setOnInsert: {
+            created_at: now(),
+            deleted: false,
+          },
+        },
+        { upsert: true }
+      );
+
+      ok(res, {
+        success: true,
+        redirect_url: sessionData.redirectUrl,
+        phonepe_order_id: sessionData.orderId,
+        order_id: String(order._id),
+      });
+    } catch (err) {
+      console.error("[PhonePe Initiate Error]", err);
+      fail(err.message || "Failed to initiate PhonePe payment");
+    }
+  });
+
+  // 2. Query / Check PhonePe Payment Status
+  router.get("/phonepe/status/:order_id", async (req, res) => {
+    try {
+      const order = await get(db, "orders", req.params.order_id);
+      owns(req, order);
+
+      if (order.payment_status === "paid") {
+        return ok(res, {
+          state: "COMPLETED",
+          order_status: order.order_status,
+          payment_status: order.payment_status,
+        });
+      }
+
+      // Query PhonePe directly
+      const pgStatus = await getPhonePeOrderStatus(String(order._id));
+      const state = pgStatus?.state || "PENDING";
+
+      if (state === "COMPLETED") {
+        // Complete the order
+        await update(db, "orders", String(order._id), {
+          payment_status: "paid",
+          order_status: "confirmed",
+          proof_submitted_at: now(),
+        });
+
+        await db.collection("payments").updateOne(
+          { order_id: String(order._id) },
+          {
+            $set: {
+              status: "approved",
+              phonepe_state: "COMPLETED",
+              verified_by: "phonepe_gateway",
+              verified_at: now(),
+              updated_at: now(),
+            },
+          }
+        );
+
+        await notify(
+          db,
+          order.customer_id,
+          "order_placed",
+          "Order Confirmed & Paid",
+          `Payment for Order #${order.order_number} verified via PhonePe.`,
+          { order_id: String(order._id) }
+        );
+
+        await queueEmail(
+          db,
+          "payment_approved",
+          order.customer_snapshot.email,
+          {
+            order_id: String(order._id),
+            order_number: order.order_number,
+          }
+        );
+
+        return ok(res, {
+          state: "COMPLETED",
+          order_status: "confirmed",
+          payment_status: "paid",
+        });
+      }
+
+      ok(res, {
+        state,
+        order_status: order.order_status,
+        payment_status: order.payment_status,
+      });
+    } catch (err) {
+      console.error("[PhonePe Status Error]", err);
+      fail(err.message || "Failed to query PhonePe status");
+    }
+  });
+
+  // 3. Webhook listener from PhonePe
+  router.post("/phonepe/webhook", async (req, res) => {
+    try {
+      console.log("[PhonePe Webhook Received]", JSON.stringify(req.body));
+
+      // Extract merchantOrderId
+      let merchantOrderId =
+        req.body?.payload?.merchantOrderId ||
+        req.body?.merchantOrderId ||
+        req.body?.data?.merchantOrderId;
+
+      if (!merchantOrderId && req.body?.response) {
+        try {
+          const decoded = Buffer.from(req.body.response, "base64").toString("utf8");
+          const parsed = JSON.parse(decoded);
+          merchantOrderId = parsed?.data?.merchantTransactionId || parsed?.data?.merchantOrderId;
+        } catch {}
+      }
+
+      if (merchantOrderId) {
+        // Double verify directly from PhonePe API to avoid any spoofing
+        const pgStatus = await getPhonePeOrderStatus(merchantOrderId);
+        if (pgStatus?.state === "COMPLETED") {
+          const order = await db.collection("orders").findOne({
+            $or: [{ _id: oid(merchantOrderId) }, { order_number: merchantOrderId }],
+            ...active,
+          });
+
+          if (order && order.payment_status !== "paid") {
+            await update(db, "orders", String(order._id), {
+              payment_status: "paid",
+              order_status: "confirmed",
+              proof_submitted_at: now(),
+            });
+
+            await db.collection("payments").updateOne(
+              { order_id: String(order._id) },
+              {
+                $set: {
+                  status: "approved",
+                  phonepe_state: "COMPLETED",
+                  verified_by: "phonepe_gateway",
+                  verified_at: now(),
+                  updated_at: now(),
+                },
+              }
+            );
+
+            await notify(
+              db,
+              order.customer_id,
+              "order_placed",
+              "Payment Received via PhonePe",
+              `Payment for Order #${order.order_number} confirmed via PhonePe Gateway.`,
+              { order_id: String(order._id) }
+            );
+
+            await queueEmail(
+              db,
+              "payment_approved",
+              order.customer_snapshot.email,
+              {
+                order_id: String(order._id),
+                order_number: order.order_number,
+              }
+            );
+          }
+        }
+      }
+
+      // Always return 200 OK to PhonePe
+      res.status(200).json({ status: "SUCCESS" });
+    } catch (err) {
+      console.error("[PhonePe Webhook Error]", err);
+      // Return 200 so PhonePe knows request arrived
+      res.status(200).json({ status: "ACKNOWLEDGED", error: err.message });
+    }
+  });
+
   return router;
 }
 export function shipmentRoutes(context, admin = false) {

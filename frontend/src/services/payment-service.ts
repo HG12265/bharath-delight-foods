@@ -72,6 +72,21 @@ export const paymentService = {
     const response = await apiClient.get<Envelope<AdminPaymentResponse | null>>(`/api/v1/admin/payments/order/${orderId}`);
     return response.data;
   },
+
+  async initiatePhonePePayment(orderId: string, redirectUrl?: string): Promise<Envelope<{ redirect_url: string; phonepe_order_id: string }>> {
+    const response = await apiClient.post<Envelope<{ redirect_url: string; phonepe_order_id: string }>>(
+      `/api/v1/payments/phonepe/initiate/${orderId}`,
+      { redirect_url: redirectUrl }
+    );
+    return response.data;
+  },
+
+  async getPhonePeStatus(orderId: string): Promise<Envelope<{ state: string; order_status: string; payment_status: string }>> {
+    const response = await apiClient.get<Envelope<{ state: string; order_status: string; payment_status: string }>>(
+      `/api/v1/payments/phonepe/status/${orderId}`
+    );
+    return response.data;
+  },
 };
 
 export default paymentService;

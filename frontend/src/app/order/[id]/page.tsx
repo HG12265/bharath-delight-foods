@@ -3,10 +3,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "@/platform/link";
 import Image from "@/platform/image";
-import { useParams } from "@/platform/navigation";
+import { useParams, useSearchParams } from "@/platform/navigation";
 import PublicLayout from "@/components/layout/public-layout";
 import { useOrderDetails } from "@/hooks/use-orders";
-import { useInitiateUpiPayment, useSubmitUpiProof } from "@/hooks/use-payments";
+import {
+  useInitiateUpiPayment,
+  useSubmitUpiProof,
+  useInitiatePhonePePayment,
+  usePhonePeStatus,
+} from "@/hooks/use-payments";
 import { useClearCart } from "@/hooks/use-cart";
 import mediaService from "@/services/media-service";
 import orderService from "@/services/order-service";
@@ -25,12 +30,14 @@ import {
   ExternalLink,
   Package,
   Truck,
-  X
+  X,
+  CreditCard,
 } from "lucide-react";
 import { InitiatePaymentResponse } from "@/services/payment-service";
 
 export default function OrderDetailsPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params?.id as string;
 
   const { data: orderData, isPending: isOrderPending, isError: isOrderError, refetch: refetchOrder } = useOrderDetails(orderId);
@@ -40,10 +47,25 @@ export default function OrderDetailsPage() {
   const initiateMutation = useInitiateUpiPayment();
   const submitProofMutation = useSubmitUpiProof();
   const clearCartMutation = useClearCart();
+  const initiatePhonePeMutation = useInitiatePhonePePayment();
+
+  // PhonePe status check
+  const isFromPhonePe = searchParams?.get("status") === "check" || searchParams?.get("from") === "phonepe";
+  const { data: phonePeStatusData } = usePhonePeStatus(orderId, {
+    enabled: !!order && order.payment_status !== "paid" && isFromPhonePe,
+    refetchInterval: 3000,
+  });
+
+  useEffect(() => {
+    if (phonePeStatusData?.data?.state === "COMPLETED") {
+      refetchOrder();
+    }
+  }, [phonePeStatusData, refetchOrder]);
 
   // Component states
   const [paymentInfo, setPaymentInfo] = useState<InitiatePaymentResponse | null>(null);
   const [initiateError, setInitiateError] = useState<string | null>(null);
+  const [phonePeError, setPhonePeError] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState(false);
 
   // File upload state
@@ -134,6 +156,29 @@ export default function OrderDetailsPage() {
     navigator.clipboard.writeText(upiId);
     setCopiedText(true);
     setTimeout(() => setCopiedText(false), 2000);
+  };
+
+  // Handle PhonePe Payment Gateway Initiation
+  const handlePhonePePay = () => {
+    if (!order) return;
+    setPhonePeError(null);
+    initiatePhonePeMutation.mutate(
+      { orderId: order.id },
+      {
+        onSuccess: (res) => {
+          if (res?.data?.redirect_url) {
+            window.location.href = res.data.redirect_url;
+          } else {
+            setPhonePeError("Could not retrieve PhonePe payment URL.");
+          }
+        },
+        onError: (err: any) => {
+          setPhonePeError(
+            err.response?.data?.message || err.message || "Failed to start PhonePe payment session."
+          );
+        },
+      }
+    );
   };
 
   // Handle screenshot file validation
@@ -427,6 +472,63 @@ export default function OrderDetailsPage() {
                     </div>
                   ) : (
                     <div className="space-y-6">
+
+                      {/* PhonePe Payment Gateway (Instant Automatic Approval) */}
+                      <div className="bg-gradient-to-r from-[#5f259f]/10 via-[#5f259f]/5 to-transparent border-2 border-[#5f259f]/30 rounded-xl p-5 sm:p-6 space-y-4 shadow-sm">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#5f259f] flex items-center justify-center text-white font-bold text-lg shadow-sm shrink-0">
+                              पे
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-serif text-lg font-bold text-deodharForest">
+                                  Pay via PhonePe Payment Gateway
+                                </h3>
+                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold uppercase tracking-wider rounded border border-emerald-200">
+                                  Instant
+                                </span>
+                              </div>
+                              <p className="text-xs text-indianInk/70 font-sans mt-0.5">
+                                UPI (PhonePe, GPay, Paytm), Cards & NetBanking with 100% automated instant confirmation.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={handlePhonePePay}
+                          disabled={initiatePhonePeMutation.isPending}
+                          className="w-full py-3.5 px-6 bg-[#5f259f] hover:bg-[#4d1d82] text-white rounded-lg font-sans font-bold text-xs sm:text-sm tracking-wider uppercase transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {initiatePhonePeMutation.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Opening PhonePe Gateway...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="w-4 h-4" />
+                              <span>Pay {formatINR(order.pricing.grand_total)} via PhonePe</span>
+                            </>
+                          )}
+                        </button>
+
+                        {phonePeError && (
+                          <p className="text-xs text-destructive font-semibold font-sans text-center">
+                            {phonePeError}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Divider for manual UPI */}
+                      <div className="flex items-center gap-3 py-1">
+                        <div className="flex-grow h-px bg-burnishedGold/20" />
+                        <span className="text-[11px] font-sans uppercase tracking-widest text-indianInk/50 font-bold">
+                          OR PAY MANUALLY VIA UPI QR
+                        </span>
+                        <div className="flex-grow h-px bg-burnishedGold/20" />
+                      </div>
 
                       {/* Payment Instructions */}
                       <div className="bg-[#FAF9F6] border border-burnishedGold/15 rounded-lg p-4 space-y-4">
