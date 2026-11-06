@@ -368,6 +368,20 @@ export function productRoutes(context) {
           : 0,
       );
       product.display_price = product.min_price;
+
+      // Ensure media_urls reflects active media_ids
+      if (product.media_ids?.length) {
+        const mediaAssets = await db
+          .collection("media_assets")
+          .find({ _id: { $in: product.media_ids.map(oid) }, ...active }, { session })
+          .toArray();
+        const mediaMap = new Map(mediaAssets.map((a) => [String(a._id), a.public_url]));
+        const resolvedUrls = product.media_ids.map((mid) => mediaMap.get(mid)).filter(Boolean);
+        if (resolvedUrls.length) {
+          product.media_urls = resolvedUrls;
+        }
+      }
+
       let saved;
       if (id) {
         delete product._id;

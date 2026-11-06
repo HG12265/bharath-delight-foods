@@ -26,7 +26,11 @@ export default function OrdersPage() {
   const { data: ordersData, isPending: isOrdersPending, isError: isOrdersError } = useOrders();
   const cancelOrderMutation = useCancelOrder();
 
-  const orders = ordersData?.data || [];
+  const allOrders = ordersData?.data || [];
+  // Only show orders that have been paid, confirmed, or proof submitted (never pending unpaid checkouts)
+  const orders = allOrders.filter(
+    (o) => o.payment_status === "paid" || o.order_status === "confirmed" || Boolean((o as any).proof_submitted_at)
+  );
 
   // Track Shipment modal states
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);

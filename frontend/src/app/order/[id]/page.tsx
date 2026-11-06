@@ -58,9 +58,11 @@ export default function OrderDetailsPage() {
 
   useEffect(() => {
     if (phonePeStatusData?.data?.state === "COMPLETED") {
+      clearCartMutation.mutate(undefined);
+      setShowSuccessBanner(true);
       refetchOrder();
     }
-  }, [phonePeStatusData, refetchOrder]);
+  }, [phonePeStatusData, refetchOrder, clearCartMutation]);
 
   // Component states
   const [paymentInfo, setPaymentInfo] = useState<InitiatePaymentResponse | null>(null);
@@ -733,8 +735,9 @@ export default function OrderDetailsPage() {
                 <div className="divide-y divide-burnishedGold/10 max-h-[280px] overflow-y-auto pr-1">
                   {order.items.map((item) => {
                     const rawImage = (item as any).image_url || (item as any).media_urls?.[0];
+                    const isUrl = Boolean(rawImage && (rawImage.startsWith("http://") || rawImage.startsWith("https://") || rawImage.startsWith("/")));
                     const fallbackImage = getProductFallbackImage((item as any).product_slug || item.product_name);
-                    const imageSrc = rawImage || fallbackImage;
+                    const imageSrc = isUrl ? rawImage : fallbackImage;
 
                     return (
                       <div key={item.variant_id} className="flex gap-4 py-3 first:pt-0 last:pb-0 items-center">

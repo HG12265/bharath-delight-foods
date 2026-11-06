@@ -59,6 +59,17 @@ const transitions = {
     cancelled: [],
   },
 };
+async function convertOrderCart(db, order, session) {
+  if (order?.cart_id) {
+    try {
+      await db.collection("carts").updateOne(
+        { _id: oid(order.cart_id) },
+        { $set: { status: "converted", items: [], owner_key: null, updated_at: now() } },
+        session ? { session } : {}
+      );
+    } catch {}
+  }
+}
 async function cancel(db, req, order, session) {
   if (order.order_status === "cancelled") return order;
   if (["shipped", "delivered"].includes(order.fulfillment_status))
@@ -291,9 +302,11 @@ export function orderRoutes(context, admin = false) {
       const items = [];
       for (const item of checkout.items) {
         const product = await get(db, "products", item.product_id, session);
+        const [view] = await productViews(db, [product], session);
         const variant = product.variants.find(
           (variant) => variant.variant_id === item.variant_id,
         );
+        const resolvedImageUrl = view?.media_urls?.[0] || product.media_urls?.[0] || null;
         items.push({
           ...pick(item, [
             "product_id",
@@ -304,8 +317,8 @@ export function orderRoutes(context, admin = false) {
           ]),
           product_name: product.name,
           product_slug: product.slug,
-          media_urls: product.media_urls,
-          image_url: product.media_urls?.[0] || null,
+          media_urls: view?.media_urls?.length ? view.media_urls : (product.media_urls || []),
+          image_url: resolvedImageUrl,
           variant_title: variant?.title || variant?.volume_weight || "Default",
           volume_weight: variant?.volume_weight,
           unit_price: item.price,
@@ -325,6 +338,7 @@ export function orderRoutes(context, admin = false) {
         {
           order_number: orderNumber,
           checkout_id: req.params.checkout_id,
+          cart_id: checkout.cart_id,
           customer_id: checkout.customer_id,
           guest_token: checkout.guest_token,
           customer_snapshot: {
@@ -352,13 +366,7 @@ export function orderRoutes(context, admin = false) {
         },
         session,
       );
-      await update(
-        db,
-        "carts",
-        checkout.cart_id,
-        { status: "converted", owner_key: null },
-        session,
-      );
+      // Cart will be converted/cleared only after payment is confirmed/submitted
       await update(
         db,
         "checkouts",
@@ -377,7 +385,15 @@ export function orderRoutes(context, admin = false) {
       res,
       await db
         .collection("orders")
-        .find({ ...active, customer_id: String(req.user._id) })
+        .find({
+          ...active,
+          customer_id: String(req.user._id),
+          $or: [
+            { payment_status: "paid" },
+            { order_status: { $in: ["confirmed", "closed"] } },
+            { proof_submitted_at: { $ne: null } },
+          ],
+        })
         .sort({ created_at: -1 })
         .skip(skip(req.query.skip))
         .limit(limit(req.query.limit))
@@ -418,18 +434,18 @@ export function orderRoutes(context, admin = false) {
     owns(req, order);
     const enrichedItems = await Promise.all(
       (order.items || []).map(async (item) => {
-        if (item.image_url || item.media_urls?.length) return item;
         try {
           const product = await db
             .collection("products")
             .findOne({ _id: oid(item.product_id) });
           if (!product) return item;
           const [view] = await productViews(db, [product]);
+          const latestImg = view?.media_urls?.[0] || product.media_urls?.[0] || item.image_url;
           return {
             ...item,
             product_slug: product.slug,
-            media_urls: view?.media_urls || [],
-            image_url: view?.media_urls?.[0] || null,
+            media_urls: view?.media_urls?.length ? view.media_urls : (item.media_urls || []),
+            image_url: latestImg,
           };
         } catch {
           return item;
@@ -519,6 +535,9 @@ export function paymentRoutes(context, admin = false) {
             },
             session,
           );
+          if (approve) {
+            await convertOrderCart(db, order, session);
+          }
           await notify(
             db,
             order.customer_id,
@@ -658,6 +677,7 @@ export function paymentRoutes(context, admin = false) {
           },
           session,
         );
+        await convertOrderCart(db, order, session);
         await notify(
           db,
           order.customer_id,
@@ -792,6 +812,8 @@ export function paymentRoutes(context, admin = false) {
           }
         );
 
+        await convertOrderCart(db, order);
+
         await notify(
           db,
           order.customer_id,
@@ -876,6 +898,8 @@ export function paymentRoutes(context, admin = false) {
                 },
               }
             );
+
+            await convertOrderCart(db, order);
 
             await notify(
               db,
