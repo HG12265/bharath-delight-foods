@@ -18,9 +18,12 @@ export const fail = (message, status = 400, code = "INVALID_REQUEST") => {
   throw error;
 };
 export function oid(value) {
-  if (typeof value !== "string" || !/^[a-f\d]{24}$/i.test(value))
+  if (value instanceof ObjectId) return value;
+  if (value && typeof value === "object" && typeof value.toHexString === "function") return value;
+  const str = typeof value === "string" ? value : String(value ?? "");
+  if (!/^[a-f\d]{24}$/i.test(str))
     fail("Invalid record identifier.", 400, "INVALID_IDENTIFIER");
-  return new ObjectId(value);
+  return new ObjectId(str);
 }
 export function json(value) {
   if (value == null) return value;

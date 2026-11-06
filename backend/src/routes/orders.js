@@ -892,7 +892,7 @@ export function shipmentRoutes(context, admin = false) {
         await update(
           db,
           "orders",
-          order._id,
+          String(order._id),
           { fulfillment_status: "shipped" },
           session,
         );
