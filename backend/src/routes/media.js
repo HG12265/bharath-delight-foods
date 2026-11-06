@@ -209,6 +209,7 @@ export function mediaRoutes({ db }) {
 
       let finalPublicUrl = asset.public_url;
       let storageProvider = "local";
+      let cloudinaryPublicId = null;
 
       const isCloudinaryActive = Boolean(cloudName && apiKey && apiSecret);
 
@@ -236,20 +237,19 @@ export function mediaRoutes({ db }) {
           if (uploadResult?.secure_url) {
             finalPublicUrl = uploadResult.secure_url;
             storageProvider = "cloudinary";
+            cloudinaryPublicId = uploadResult.public_id;
           }
         } catch (uploadErr) {
           console.error("Cloudinary upload failed, falling back to local storage:", uploadErr);
         }
       }
 
-      // Also save to local static storage as backup / local cache
-      const destination = path.resolve(staticRoot, key);
-      if (destination.startsWith(staticRoot + path.sep)) {
-        try {
+      // Only save to local disk if Cloudinary is NOT active (offline / local dev fallback)
+      if (storageProvider === "local") {
+        const destination = path.resolve(staticRoot, key);
+        if (destination.startsWith(staticRoot + path.sep)) {
           await fs.mkdir(path.dirname(destination), { recursive: true });
           await fs.writeFile(destination, req.body, { flag: "w" });
-        } catch (diskErr) {
-          if (storageProvider === "local") throw diskErr;
         }
       }
 
@@ -257,6 +257,7 @@ export function mediaRoutes({ db }) {
         uploaded_at: now(),
         public_url: finalPublicUrl,
         storage_provider: storageProvider,
+        ...(cloudinaryPublicId ? { cloudinary_public_id: cloudinaryPublicId } : {}),
       });
       ok(res, { storage_key: key, public_url: finalPublicUrl });
     },
@@ -297,6 +298,9 @@ export function mediaRoutes({ db }) {
   router.delete("/:id", authenticated, async (req, res) => {
     const asset = await get(db, "media_assets", req.params.id);
     checkOwner(req, asset);
+    if (asset.cloudinary_public_id && isCloudinaryActive) {
+      cloudinary.uploader.destroy(asset.cloudinary_public_id).catch(() => {});
+    }
     await update(db, "media_assets", req.params.id, {
       is_deleted: true,
       deleted_at: now(),
