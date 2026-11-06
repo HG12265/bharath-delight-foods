@@ -63,3 +63,4 @@ export const offerService = {
     return response.data;
   },
 };
+
