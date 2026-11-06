@@ -2,6 +2,7 @@ import { Router, raw } from "express";
 import fs from "node:fs/promises";
 import path from "node:path";
 import jwt from "jsonwebtoken";
+import { v2 as cloudinary } from "cloudinary";
 import {
   active,
   now,
@@ -15,6 +16,19 @@ import {
   roles,
   validate,
 } from "../core.js";
+
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "g8cdkkj6";
+const apiKey = process.env.CLOUDINARY_API_KEY || "365267442955668";
+const apiSecret = process.env.CLOUDINARY_API_SECRET || "5r56jMIbxOnuw5RPT03pansb_70";
+
+if (cloudName && apiKey && apiSecret) {
+  cloudinary.config({
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
+    secure: true,
+  });
+}
 
 const imageTypes = ["image/jpeg", "image/png", "image/webp"];
 const rules = {
@@ -82,7 +96,11 @@ export function mediaRoutes({ db }) {
   };
 
   router.get("/health", (req, res) =>
-    ok(res, { status: "healthy", provider: "local", storage_provider: "local" }),
+    ok(res, {
+      status: "healthy",
+      provider: cloudName && apiKey && apiSecret ? "cloudinary" : "local",
+      storage_provider: cloudName && apiKey && apiSecret ? "cloudinary" : "local",
+    }),
   );
 
   router.post(
@@ -189,17 +207,58 @@ export function mediaRoutes({ db }) {
       if (req.get("Content-Type")?.split(";")[0] !== asset.content_type)
         fail("Upload content type mismatch.");
 
+      let finalPublicUrl = asset.public_url;
+      let storageProvider = "local";
+
+      const isCloudinaryActive = Boolean(cloudName && apiKey && apiSecret);
+
+      if (isCloudinaryActive) {
+        try {
+          const isPdf = asset.content_type === "application/pdf";
+          const parsedName = path.parse(asset.original_filename).name.replace(/[^a-zA-Z0-9_-]/g, "_");
+          const publicId = `${uid().slice(0, 8)}-${parsedName}`;
+
+          const uploadResult = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              {
+                folder: `bharath_delight/${asset.asset_type}`,
+                public_id: publicId,
+                resource_type: isPdf ? "raw" : "auto",
+              },
+              (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+              },
+            );
+            stream.end(req.body);
+          });
+
+          if (uploadResult?.secure_url) {
+            finalPublicUrl = uploadResult.secure_url;
+            storageProvider = "cloudinary";
+          }
+        } catch (uploadErr) {
+          console.error("Cloudinary upload failed, falling back to local storage:", uploadErr);
+        }
+      }
+
+      // Also save to local static storage as backup / local cache
       const destination = path.resolve(staticRoot, key);
-      if (!destination.startsWith(staticRoot + path.sep))
-        fail("Invalid storage path.");
-      await fs.mkdir(path.dirname(destination), { recursive: true });
-      await fs.writeFile(destination, req.body, { flag: "wx" });
+      if (destination.startsWith(staticRoot + path.sep)) {
+        try {
+          await fs.mkdir(path.dirname(destination), { recursive: true });
+          await fs.writeFile(destination, req.body, { flag: "w" });
+        } catch (diskErr) {
+          if (storageProvider === "local") throw diskErr;
+        }
+      }
 
       await update(db, "media_assets", String(asset._id), {
         uploaded_at: now(),
-        public_url: asset.public_url,
+        public_url: finalPublicUrl,
+        storage_provider: storageProvider,
       });
-      ok(res, { storage_key: key, public_url: asset.public_url });
+      ok(res, { storage_key: key, public_url: finalPublicUrl });
     },
   );
 
