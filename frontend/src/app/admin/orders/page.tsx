@@ -104,7 +104,7 @@ export default function AdminOrdersPage() {
           const text = await err.response.data.text();
           const json = JSON.parse(text);
           if (json?.message) msg = json.message;
-        } catch {}
+        } catch { }
       } else if (err?.response?.data?.message) {
         msg = err.response.data.message;
       }
@@ -149,7 +149,7 @@ export default function AdminOrdersPage() {
           const text = await err.response.data.text();
           const json = JSON.parse(text);
           if (json?.message) msg = json.message;
-        } catch {}
+        } catch { }
       } else if (err?.response?.data?.message) {
         msg = err.response.data.message;
       }
@@ -512,11 +512,10 @@ export default function AdminOrdersPage() {
                 <button
                   key={p.status}
                   onClick={() => setSelectedStatus(p.status)}
-                  className={`px-3 py-1 font-sans text-[11px] font-semibold uppercase tracking-wider rounded border transition ${
-                    active
-                      ? "bg-[#1E352F] text-white border-[#1E352F]"
-                      : "bg-[#FAF9F6] text-[#1C2321]/70 border-indianInk/10 hover:border-[#C49A45]"
-                  }`}
+                  className={`px-3 py-1 font-sans text-[11px] font-semibold uppercase tracking-wider rounded border transition ${active
+                    ? "bg-[#1E352F] text-white border-[#1E352F]"
+                    : "bg-[#FAF9F6] text-[#1C2321]/70 border-indianInk/10 hover:border-[#C49A45]"
+                    }`}
                 >
                   {p.label}
                 </button>
@@ -593,13 +592,12 @@ export default function AdminOrdersPage() {
                   {filteredOrders.map((order, index) => (
                     <tr
                       key={order.id}
-                      className={`transition-colors cursor-pointer ${
-                        selectedOrderIds.includes(order.id)
-                          ? "bg-[#C49A45]/10"
-                          : index % 2 === 1
+                      className={`transition-colors cursor-pointer ${selectedOrderIds.includes(order.id)
+                        ? "bg-[#C49A45]/10"
+                        : index % 2 === 1
                           ? "bg-indianInk/[0.015]"
                           : "bg-white"
-                      } hover:bg-[#F2ECE4]/40`}
+                        } hover:bg-[#F2ECE4]/40`}
                       onClick={() => setSelectedOrderId(order.id)}
                     >
                       <td className="px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
@@ -666,11 +664,10 @@ export default function AdminOrdersPage() {
                 <div
                   key={order.id}
                   onClick={() => setSelectedOrderId(order.id)}
-                  className={`border rounded p-4 shadow-sm hover:border-[#C49A45] transition-colors cursor-pointer space-y-3 ${
-                    isSelected
-                      ? "bg-[#C49A45]/10 border-[#C89B3C]"
-                      : "bg-white border-[#C49A45]/15"
-                  }`}
+                  className={`border rounded p-4 shadow-sm hover:border-[#C49A45] transition-colors cursor-pointer space-y-3 ${isSelected
+                    ? "bg-[#C49A45]/10 border-[#C89B3C]"
+                    : "bg-white border-[#C49A45]/15"
+                    }`}
                 >
                   <div className="flex justify-between items-center">
                     <div
@@ -804,7 +801,7 @@ export default function AdminOrdersPage() {
                   </button>
                 </div>
               )}
-              
+
               {/* Status Management Picker Panel */}
               <div className="bg-white border border-[#C49A45]/15 rounded p-4 space-y-3 shadow-sm">
                 <h4 className="font-serif text-sm font-bold text-deodharForest flex items-center gap-1.5 border-b border-indianInk/5 pb-2">
@@ -1239,7 +1236,7 @@ export default function AdminOrdersPage() {
           <div className="flex justify-between items-start border-b border-black/15 pb-6 mb-6">
             <div>
               <h1 className="font-serif text-2xl font-bold text-[#1E352F]">BHARATH DELIGHT FOODS</h1>
-              <p className="text-[10px] text-black/60 mt-1">Selecting the Best to Serve the Best</p>
+              <p className="text-[10px] text-black/60 mt-1">Authenticity in Every Delight</p>
               <p className="text-[9px] text-black/50 mt-2">FSSAI Lic. No: 12423999000123</p>
             </div>
             <div className="text-right">

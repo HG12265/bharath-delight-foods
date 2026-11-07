@@ -11,7 +11,7 @@ export default function Loading() {
         BHARATH DELIGHT FOODS
       </p>
       <p className="font-sans text-xs tracking-wider uppercase text-muted-foreground">
-        Selecting the Best to Serve the Best
+        Authenticity in Every Delight
       </p>
     </div>
   );

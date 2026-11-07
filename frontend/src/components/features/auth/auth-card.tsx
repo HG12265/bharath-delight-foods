@@ -26,7 +26,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({
           BHARATH DELIGHT FOODS
         </h2>
         <p className="text-xs uppercase tracking-[0.12em] font-sans text-warmIvory/70">
-          Selecting the Best to Serve the Best
+          Authenticity in Every Delight
         </p>
       </div>
 
