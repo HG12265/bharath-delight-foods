@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "@/platform/navigation";
 import { useLogin } from "../../../hooks/use-auth";
 import PasswordField from "./password-field";
+import GoogleSignInButton from "./google-sign-in-button";
 
 export const LoginForm: React.FC = () => {
   const router = useRouter();
@@ -147,6 +148,18 @@ export const LoginForm: React.FC = () => {
           <span>Secure Sign In</span>
         )}
       </button>
+
+      {/* Divider */}
+      <div className="flex items-center gap-3 my-1">
+        <div className="flex-grow h-px bg-burnishedGold/20" />
+        <span className="text-[11px] font-sans uppercase tracking-widest text-indianInk/45 font-medium">
+          Or continue with
+        </span>
+        <div className="flex-grow h-px bg-burnishedGold/20" />
+      </div>
+
+      {/* Google Sign In */}
+      <GoogleSignInButton mode="signin" onError={(err) => setApiError(err)} />
     </form>
   );
 };
