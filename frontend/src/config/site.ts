@@ -24,6 +24,7 @@ export const siteConfig = {
   links: {
     supportEmail: "bharathdelightfoods@gmail.com",
     partnerPortal: "/b2b",
+    instagram: "https://www.instagram.com/bharathdelightfoods?exln=ZThhejEwcHNldnNw",
   },
   nav: {
     main: [

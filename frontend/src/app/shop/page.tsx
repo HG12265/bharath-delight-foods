@@ -21,7 +21,7 @@ function ShopProductImage({ mediaId, alt, productNameOrSlug, index }: { mediaId?
   const isUrl = mediaId && (mediaId.startsWith("http://") || mediaId.startsWith("https://") || mediaId.startsWith("/"));
   const { data: mediaRes, isError } = useMediaAsset(isUrl ? "" : (mediaId || ""), { enabled: !!mediaId && !isUrl });
   const url = isUrl ? mediaId : ((!isError && mediaRes?.success && mediaRes?.data?.public_url) ? mediaRes.data.public_url : fallbackSrc);
-  
+
   return (
     <Image
       src={optimizeCloudinaryUrl(url, 600)}
@@ -276,7 +276,7 @@ function ShopContent() {
   const updateUrl = (newParams: { category?: string; search?: string; sort?: string; page?: number }) => {
     const currentSearch = typeof window !== "undefined" ? window.location.search : searchParams.toString();
     const params = new URLSearchParams(currentSearch);
-    
+
     if (newParams.category !== undefined) {
       if (newParams.category) params.set("category", newParams.category);
       else params.delete("category");
@@ -398,7 +398,7 @@ function ShopContent() {
 
   return (
     <div className="bg-[#FAF9F6] text-indianInk min-h-screen font-sans selection:bg-deodharForest/10">
-      
+
 
       {/* ═══════════════════════════════════════════════════════
           PRODUCT CATEGORIES — "Something for Every Kitchen"
@@ -508,7 +508,7 @@ function ShopContent() {
                 className="w-full pl-10 pr-4 py-2.5 bg-[#FAF9F6] border border-burnishedGold/20 rounded-lg font-sans text-xs focus:outline-none focus:border-[#D9A441] text-indianInk transition-colors"
               />
               {searchInput && (
-                <button 
+                <button
                   onClick={() => setSearchInput("")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-indianInk/40 hover:text-indianInk"
                 >
@@ -554,11 +554,10 @@ function ShopContent() {
             <button
               type="button"
               onClick={() => handleCategorySelect("")}
-              className={`px-4 py-1.5 rounded-full text-xs font-sans font-semibold uppercase tracking-wider transition-all border ${
-                !selectedCategory
+              className={`px-4 py-1.5 rounded-full text-xs font-sans font-semibold uppercase tracking-wider transition-all border ${!selectedCategory
                   ? "bg-deodharForest text-richCream border-deodharForest"
                   : "bg-white text-deodharForest border-burnishedGold/20 hover:border-burnishedGold/45"
-              }`}
+                }`}
             >
               All Products
             </button>
@@ -567,11 +566,10 @@ function ShopContent() {
                 key={cat.id}
                 type="button"
                 onClick={() => handleCategorySelect(cat.slug)}
-                className={`px-4 py-1.5 rounded-full text-xs font-sans font-semibold uppercase tracking-wider transition-all border ${
-                  selectedCategory === cat.slug
+                className={`px-4 py-1.5 rounded-full text-xs font-sans font-semibold uppercase tracking-wider transition-all border ${selectedCategory === cat.slug
                     ? "bg-deodharForest text-richCream border-deodharForest"
                     : "bg-white text-deodharForest border-burnishedGold/20 hover:border-burnishedGold/45"
-                }`}
+                  }`}
               >
                 {cat.name}
               </button>
@@ -579,7 +577,7 @@ function ShopContent() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
-            
+
             {/* Desktop Categories Sidebar */}
             <aside className="hidden md:block col-span-1 bg-white border border-burnishedGold/15 rounded-xl p-6 shadow-sm sticky top-24">
               <h2 className="font-serif text-lg font-bold text-deodharForest border-b border-burnishedGold/15 pb-3 mb-4">
@@ -589,11 +587,10 @@ function ShopContent() {
                 <button
                   type="button"
                   onClick={() => handleCategorySelect("")}
-                  className={`w-full text-left px-3 py-2 text-xs font-sans font-semibold tracking-wider uppercase rounded-lg transition-colors ${
-                    !selectedCategory
+                  className={`w-full text-left px-3 py-2 text-xs font-sans font-semibold tracking-wider uppercase rounded-lg transition-colors ${!selectedCategory
                       ? "bg-deodharForest text-richCream"
                       : "text-indianInk/75 hover:bg-[#FAF9F6] hover:text-deodharForest"
-                  }`}
+                    }`}
                 >
                   All Products
                 </button>
@@ -602,11 +599,10 @@ function ShopContent() {
                     key={cat.id}
                     type="button"
                     onClick={() => handleCategorySelect(cat.slug)}
-                    className={`w-full text-left px-3 py-2 text-xs font-sans font-semibold tracking-wider uppercase rounded-lg transition-colors ${
-                      selectedCategory === cat.slug
+                    className={`w-full text-left px-3 py-2 text-xs font-sans font-semibold tracking-wider uppercase rounded-lg transition-colors ${selectedCategory === cat.slug
                         ? "bg-deodharForest text-richCream"
                         : "text-indianInk/75 hover:bg-[#FAF9F6] hover:text-deodharForest"
-                    }`}
+                      }`}
                   >
                     {cat.name}
                   </button>
@@ -696,11 +692,10 @@ function ShopContent() {
                                 title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                               >
                                 <Heart
-                                  className={`w-3.5 h-3.5 transition-all duration-300 ${
-                                    isWishlisted
+                                  className={`w-3.5 h-3.5 transition-all duration-300 ${isWishlisted
                                       ? "fill-red-600 text-red-600 scale-110"
                                       : "text-burnishedGold/80 group-hover/heart:text-red-500 group-hover/heart:fill-red-50/50"
-                                  }`}
+                                    }`}
                                 />
                               </button>
                             )}
@@ -728,7 +723,7 @@ function ShopContent() {
 
                             <div className="flex items-center justify-between pt-3.5 border-t border-burnishedGold/10">
                               <div className="flex flex-col font-sans">
-                                <span className="text-[8px] uppercase tracking-wider text-indianInk/45">Starting from</span>
+                                <span className="text-[8px] uppercase tracking-wider text-indianInk/45">SPECIAL INTRODUCTORY OFFER</span>
                                 <div className="flex items-baseline gap-1.5">
                                   <span className="font-sans text-xs font-bold text-[#0F3D2E]">
                                     {formatINR(effectivePrice)}
@@ -740,8 +735,8 @@ function ShopContent() {
                                   )}
                                 </div>
                               </div>
-                              
-                              <Link 
+
+                              <Link
                                 href={`/products/${product.slug}`}
                                 className="relative overflow-hidden group/btn px-4 py-2 bg-deodharForest text-richCream rounded-full font-sans text-[9px] font-semibold tracking-widest uppercase transition-all duration-300 ease-out border border-transparent hover:border-gheeGold hover:shadow-[0_4px_10px_rgba(15,61,46,0.12)] hover:-translate-y-0.5 text-center focus-visible:ring-2 focus-visible:ring-burnishedGold outline-none flex items-center gap-1.5"
                               >
@@ -906,8 +901,8 @@ function ShopContent() {
       {/* Mobile Filter Drawer Overlay */}
       {mobileFilterOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" 
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
             onClick={() => setMobileFilterOpen(false)}
           />
           <div className="relative w-full max-w-xs bg-richCream h-full p-6 shadow-2xl flex flex-col justify-between animate-fade-in border-l border-burnishedGold/20">
@@ -922,11 +917,10 @@ function ShopContent() {
                 <button
                   type="button"
                   onClick={() => handleCategorySelect("")}
-                  className={`w-full text-left px-4 py-2.5 text-xs font-sans font-semibold tracking-wider uppercase rounded-lg transition-colors ${
-                    !selectedCategory
+                  className={`w-full text-left px-4 py-2.5 text-xs font-sans font-semibold tracking-wider uppercase rounded-lg transition-colors ${!selectedCategory
                       ? "bg-deodharForest text-richCream"
                       : "bg-white text-indianInk/75 border border-burnishedGold/15 hover:bg-[#FAF9F6]"
-                  }`}
+                    }`}
                 >
                   All Products
                 </button>
@@ -935,11 +929,10 @@ function ShopContent() {
                     key={cat.id}
                     type="button"
                     onClick={() => handleCategorySelect(cat.slug)}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-sans font-semibold tracking-wider uppercase rounded-lg transition-colors ${
-                      selectedCategory === cat.slug
+                    className={`w-full text-left px-4 py-2.5 text-xs font-sans font-semibold tracking-wider uppercase rounded-lg transition-colors ${selectedCategory === cat.slug
                         ? "bg-deodharForest text-richCream"
                         : "bg-white text-indianInk/75 border border-burnishedGold/15 hover:bg-[#FAF9F6]"
-                    }`}
+                      }`}
                   >
                     {cat.name}
                   </button>
