@@ -26,6 +26,7 @@ import {
   FileSpreadsheet,
   BadgePercent,
   Ticket,
+  AlertTriangle,
 } from "lucide-react";
 
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
@@ -92,6 +93,7 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
   const allNavItems = [
     { title: "Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["admin", "warehouse"] },
     { title: "Orders", href: "/admin/orders", icon: ShoppingBag, roles: ["admin", "warehouse"] },
+    { title: "Damage Claims", href: "/admin/claims", icon: AlertTriangle, roles: ["admin", "warehouse"] },
     { title: "Reports", href: "/admin/reports", icon: FileSpreadsheet, roles: ["admin", "warehouse"] },
     { title: "Products", href: "/admin/products", icon: Tags, roles: ["admin", "warehouse"] },
     { title: "Offers", href: "/admin/offers", icon: BadgePercent, roles: ["admin"] },

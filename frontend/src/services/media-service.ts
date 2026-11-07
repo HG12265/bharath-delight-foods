@@ -27,7 +27,7 @@ export const mediaService = {
     filename: string;
     content_type: string;
     size: number;
-    asset_type: "payment_proof" | "product_image" | "category_image" | "avatar";
+    asset_type: "payment_proof" | "product_image" | "category_image" | "avatar" | "damage_proof";
   }): Promise<Envelope<PresignResponse>> {
     const response = await apiClient.post<Envelope<PresignResponse>>("/api/v1/media/presign", payload);
     return response.data;
@@ -46,7 +46,7 @@ export const mediaService = {
    */
   async uploadFile(
     file: File,
-    assetType: "payment_proof" | "product_image" | "category_image" | "avatar"
+    assetType: "payment_proof" | "product_image" | "category_image" | "avatar" | "damage_proof"
   ): Promise<MediaAssetResponse> {
     // 1. Get presigned upload configuration
     const presignRes = await this.requestPresign({

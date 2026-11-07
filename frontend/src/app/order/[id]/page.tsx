@@ -26,7 +26,9 @@ import {
   CreditCard,
   ShieldCheck,
   ShoppingBag,
+  AlertTriangle,
 } from "lucide-react";
+import ReportDamageModal from "@/components/features/claims/report-damage-modal";
 
 export default function OrderDetailsPage() {
   const params = useParams();
@@ -57,6 +59,7 @@ export default function OrderDetailsPage() {
   // Invoice Download states
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const [downloadInvoiceError, setDownloadInvoiceError] = useState<string | null>(null);
+  const [isDamageModalOpen, setIsDamageModalOpen] = useState(false);
 
   // When PhonePe status is detected COMPLETED
   useEffect(() => {
@@ -304,6 +307,17 @@ export default function OrderDetailsPage() {
                         <ShoppingBag className="w-3.5 h-3.5" /> Continue Shopping
                       </Link>
 
+                      {/* Report Damaged Product */}
+                      <button
+                        type="button"
+                        onClick={() => setIsDamageModalOpen(true)}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-900 border border-amber-300 hover:border-amber-600 rounded-[4px] font-sans text-xs font-semibold tracking-widest uppercase transition-all"
+                        title="Report jar breakage, seal damage, or leakage"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Report Damaged Product</span>
+                      </button>
+
                       {downloadInvoiceError && (
                         <p className="w-full text-xs text-destructive font-semibold font-sans mt-2">{downloadInvoiceError}</p>
                       )}
@@ -534,6 +548,15 @@ export default function OrderDetailsPage() {
 
         </div>
       </div>
+
+      {/* REPORT DAMAGE MODAL */}
+      {isDamageModalOpen && (
+        <ReportDamageModal
+          isOpen={isDamageModalOpen}
+          onClose={() => setIsDamageModalOpen(false)}
+          order={order}
+        />
+      )}
     </PublicLayout>
   );
 }

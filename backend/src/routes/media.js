@@ -47,6 +47,11 @@ const rules = {
     extensions: [".jpg", ".jpeg", ".png", ".webp"],
     max: 2,
   },
+  damage_proof: {
+    types: imageTypes,
+    extensions: [".jpg", ".jpeg", ".png", ".webp"],
+    max: 10,
+  },
   payment_proof: {
     types: [...imageTypes, "image/jpg"],
     extensions: [".jpg", ".jpeg", ".png", ".webp"],
@@ -81,6 +86,12 @@ export function mediaRoutes({ db }) {
   const staticRoot = path.resolve(process.env.STATIC_DIR || "static");
 
   const checkOwner = (req, asset) => {
+    if (asset.asset_type === "damage_proof") {
+      if (asset.uploaded_by !== String(req.user?._id) && req.user?.auth?.role !== "admin") {
+        fail("Access forbidden.", 403);
+      }
+      return;
+    }
     if (asset.asset_type === "payment_proof" && !req.user) {
       if (asset.uploaded_by !== (req.guest || "guest") && asset.uploaded_by !== "guest") {
         fail("Access forbidden.", 403);

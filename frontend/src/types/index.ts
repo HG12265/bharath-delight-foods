@@ -635,4 +635,55 @@ export interface ValidateCouponResult {
   min_order_amount?: number;
 }
 
+export type ClaimIssueType =
+  | "broken_jar"
+  | "leaked"
+  | "seal_tampered"
+  | "package_damaged"
+  | "wrong_item"
+  | "quality_issue"
+  | "other";
+
+export type ClaimStatus = "pending" | "approved" | "rejected" | "resolved";
+export type ClaimResolution = "replacement" | "refund";
+
+export interface DamageClaim {
+  _id: string;
+  claim_id: string;
+  order_id: string;
+  order_number: string;
+  customer_id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  product_id?: string | null;
+  product_name: string;
+  variant_title: string;
+  quantity: number;
+  issue_type: ClaimIssueType;
+  description: string;
+  images: string[];
+  preferred_resolution: ClaimResolution;
+  status: ClaimStatus;
+  admin_notes?: string | null;
+  resolution_details?: any;
+  resolved_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateClaimPayload {
+  order_id: string;
+  product_id?: string | null;
+  product_name: string;
+  variant_title?: string;
+  quantity?: number;
+  issue_type: ClaimIssueType;
+  description: string;
+  images?: string[];
+  preferred_resolution?: ClaimResolution;
+  contact_phone?: string;
+}
+
+
 

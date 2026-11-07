@@ -31,6 +31,7 @@ import {
 import { mediaRoutes } from "./routes/media.js";
 import { offerRoutes } from "./routes/offers.js";
 import { couponRoutes } from "./routes/coupons.js";
+import { claimsRoutes } from "./routes/claims.js";
 import { sendPendingEmails } from "./documents.js";
 import { serveFrontend } from "./frontend.js";
 
@@ -165,6 +166,7 @@ export function createApp(context) {
   app.use("/api/v1/wishlists", wishlistRoutes(context));
   app.use("/api/v1/inventories", inventoryRoutes(context));
   app.use("/api/v1/checkouts", checkoutRoutes(context));
+  app.use("/api/v1/claims", claimsRoutes(context));
   for (const [prefix, routes] of [
     ["orders", orderRoutes],
     ["payments", paymentRoutes],

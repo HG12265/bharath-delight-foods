@@ -19,8 +19,10 @@ import {
   X, 
   ChevronRight, 
   AlertCircle,
-  Truck
+  Truck,
+  AlertTriangle
 } from "lucide-react";
+import ReportDamageModal from "@/components/features/claims/report-damage-modal";
 
 export default function OrdersPage() {
   const { data: ordersData, isPending: isOrdersPending, isError: isOrdersError } = useOrders();
@@ -35,6 +37,7 @@ export default function OrdersPage() {
   // Track Shipment modal states
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedOrderNumber, setSelectedOrderNumber] = useState<string | null>(null);
+  const [damageModalOrder, setDamageModalOrder] = useState<any>(null);
 
   // Use the optional enabled configuration according to instructions
   const { 
@@ -212,6 +215,17 @@ export default function OrdersPage() {
                           Invoice / Pay
                         </Link>
 
+                        {/* Report Damaged Product */}
+                        <button
+                          type="button"
+                          onClick={() => setDamageModalOrder(order)}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 border border-amber-600/30 hover:border-amber-600 text-amber-800 hover:bg-amber-50 text-xs font-semibold uppercase tracking-wider rounded-[4px] transition-all duration-200 w-full sm:w-auto text-center"
+                          title="Report broken jar, leakage, or defective item"
+                        >
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Report Damage</span>
+                        </button>
+
                       </div>
 
                     </div>
@@ -281,6 +295,15 @@ export default function OrdersPage() {
 
           </div>
         </div>
+      )}
+
+      {/* REPORT DAMAGE MODAL */}
+      {damageModalOrder && (
+        <ReportDamageModal
+          isOpen={Boolean(damageModalOrder)}
+          onClose={() => setDamageModalOrder(null)}
+          order={damageModalOrder}
+        />
       )}
     </AccountShell>
   );
