@@ -8,10 +8,11 @@ import PublicLayout from "@/components/layout/public-layout";
 import { useCart } from "@/hooks/use-cart";
 import { useMe } from "@/hooks/use-auth";
 import { usePublicSettings } from "@/hooks/use-settings";
-import { useInitiateCheckout, useCompleteCheckout } from "@/hooks/use-checkout";
+import { useInitiateCheckout, useCompleteCheckout, useApplyCoupon } from "@/hooks/use-checkout";
+import { useValidateCoupon } from "@/hooks/use-coupons";
 import { useCreateOrderFromCheckout } from "@/hooks/use-orders";
 import { formatINR, getProductFallbackImage } from "@/lib/utils";
-import { ArrowLeft, Loader2, ShieldCheck, CreditCard } from "lucide-react";
+import { ArrowLeft, Loader2, ShieldCheck, CreditCard, Ticket, CheckCircle2 } from "lucide-react";
 import { ShippingAddress } from "@/types";
 
 export default function CheckoutPage() {
@@ -27,7 +28,20 @@ export default function CheckoutPage() {
   }, [isMePending, isAuthenticated, isMeError, router]);
   const initiateCheckoutMutation = useInitiateCheckout();
   const completeCheckoutMutation = useCompleteCheckout();
+  const applyCouponMutation = useApplyCoupon();
+  const validateCouponMutation = useValidateCoupon();
   const createOrderMutation = useCreateOrderFromCheckout();
+
+  // Coupon state
+  const [couponCodeInput, setCouponCodeInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    name: string;
+    discount_amount: number;
+    discount_type: string;
+    discount_value: number;
+  } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const cart = cartData?.data;
   const items = cart?.items || [];
@@ -40,9 +54,11 @@ export default function CheckoutPage() {
   const taxRate = publicSettings?.tax_percentage !== undefined ? parseFloat(String(publicSettings.tax_percentage)) : 0;
   const standardShipping = publicSettings?.shipping_fee !== undefined ? parseFloat(String(publicSettings.shipping_fee)) : 0;
 
-  const taxTotal = subtotal > 0 ? Math.round((subtotal * taxRate) / 100) : 0;
+  const couponDiscount = appliedCoupon ? appliedCoupon.discount_amount : 0;
+  const taxableSubtotal = Math.max(0, subtotal - couponDiscount);
+  const taxTotal = taxableSubtotal > 0 ? Math.round((taxableSubtotal * taxRate) / 100) : 0;
   const shippingTotal = subtotal > 0 ? standardShipping : 0;
-  const grandTotal = subtotal + taxTotal + shippingTotal;
+  const grandTotal = Math.max(0, taxableSubtotal + taxTotal + shippingTotal);
 
   // Form fields
   const [fullName, setFullName] = useState("");
@@ -139,7 +155,54 @@ export default function CheckoutPage() {
     }
   };
 
-  const isSubmitting = initiateCheckoutMutation.isPending || completeCheckoutMutation.isPending || createOrderMutation.isPending;
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCouponError(null);
+    const cleanCode = couponCodeInput.trim().toUpperCase();
+    if (!cleanCode) {
+      setCouponError("Please enter a coupon code.");
+      return;
+    }
+
+    validateCouponMutation.mutate(
+      { code: cleanCode, subtotal },
+      {
+        onSuccess: (res) => {
+          if (res.success && res.data) {
+            setAppliedCoupon({
+              code: res.data.code,
+              name: res.data.name,
+              discount_amount: res.data.discount_amount,
+              discount_type: res.data.discount_type,
+              discount_value: res.data.discount_value,
+            });
+            setCouponCodeInput("");
+            setCouponError(null);
+          } else {
+            setCouponError(res.message || "Invalid coupon code.");
+          }
+        },
+        onError: (err: any) => {
+          setCouponError(
+            err.response?.data?.message || 
+            err.message || 
+            "Invalid or expired coupon code."
+          );
+        },
+      }
+    );
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError(null);
+  };
+
+  const isSubmitting = 
+    initiateCheckoutMutation.isPending || 
+    applyCouponMutation.isPending ||
+    completeCheckoutMutation.isPending || 
+    createOrderMutation.isPending;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,41 +248,64 @@ export default function CheckoutPage() {
       onSuccess: (checkoutRes) => {
         if (checkoutRes.success && checkoutRes.data) {
           const checkoutId = checkoutRes.data.id;
-          
-          // Step 2: Complete the checkout session (transitions status to 'completed')
-          completeCheckoutMutation.mutate(checkoutId, {
-            onSuccess: (completeRes) => {
-              if (completeRes.success && completeRes.data) {
-                // Step 3: Create order from the completed checkout session
-                createOrderMutation.mutate(checkoutId, {
-                  onSuccess: (orderRes) => {
-                    if (orderRes.success && orderRes.data) {
-                      const orderId = orderRes.data.id;
-                      router.push(`/order/${orderId}`);
-                    } else {
-                      setApiError(orderRes.message || "Failed to construct order details from checkout.");
+
+          const proceedToComplete = () => {
+            // Step 2: Complete the checkout session (transitions status to 'completed')
+            completeCheckoutMutation.mutate(checkoutId, {
+              onSuccess: (completeRes) => {
+                if (completeRes.success && completeRes.data) {
+                  // Step 3: Create order from the completed checkout session
+                  createOrderMutation.mutate(checkoutId, {
+                    onSuccess: (orderRes) => {
+                      if (orderRes.success && orderRes.data) {
+                        const orderId = orderRes.data.id;
+                        router.push(`/order/${orderId}`);
+                      } else {
+                        setApiError(orderRes.message || "Failed to construct order details from checkout.");
+                      }
+                    },
+                    onError: (err: any) => {
+                      setApiError(
+                        err.response?.data?.message || 
+                        err.message || 
+                        "An error occurred while finalizing your order."
+                      );
                     }
-                  },
-                  onError: (err: any) => {
-                    setApiError(
-                      err.response?.data?.message || 
-                      err.message || 
-                      "An error occurred while finalizing your order."
-                    );
-                  }
-                });
-              } else {
-                setApiError(completeRes.message || "Failed to complete checkout session.");
+                  });
+                } else {
+                  setApiError(completeRes.message || "Failed to complete checkout session.");
+                }
+              },
+              onError: (err: any) => {
+                setApiError(
+                  err.response?.data?.message || 
+                  err.message || 
+                  "An error occurred while completing the checkout."
+                );
               }
-            },
-            onError: (err: any) => {
-              setApiError(
-                err.response?.data?.message || 
-                err.message || 
-                "An error occurred while completing the checkout."
-              );
-            }
-          });
+            });
+          };
+
+          // If user applied a coupon, apply it to the checkout session first
+          if (appliedCoupon) {
+            applyCouponMutation.mutate(
+              { checkoutId, couponCode: appliedCoupon.code },
+              {
+                onSuccess: () => {
+                  proceedToComplete();
+                },
+                onError: (err: any) => {
+                  setApiError(
+                    err.response?.data?.message ||
+                    err.message ||
+                    "Failed to apply coupon to checkout. Please check the code."
+                  );
+                },
+              }
+            );
+          } else {
+            proceedToComplete();
+          }
         } else {
           setApiError(checkoutRes.message || "Failed to initialize checkout session.");
         }
@@ -606,6 +692,82 @@ export default function CheckoutPage() {
                     })}
                   </div>
 
+                  {/* Coupon Section */}
+                  <div className="border-t border-burnishedGold/10 pt-4">
+                    {appliedCoupon ? (
+                      <div className="bg-emerald-50/80 border border-emerald-200/80 rounded p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
+                            <Ticket className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-bold text-xs text-emerald-900 tracking-wider">
+                                {appliedCoupon.code}
+                              </span>
+                              <span className="text-[9px] bg-emerald-200 text-emerald-900 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">
+                                Applied
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-emerald-700 font-medium">
+                              {appliedCoupon.name} • Extra savings of {formatINR(couponDiscount)}!
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          className="text-[11px] text-red-600 hover:text-red-800 font-semibold uppercase tracking-wider px-2 py-1 hover:bg-red-50 rounded transition-colors"
+                          title="Remove coupon"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-deodharForest flex items-center gap-1.5 uppercase tracking-wider">
+                          <Ticket className="w-3.5 h-3.5 text-burnishedGold" />
+                          Have a Promo / Coupon Code?
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Enter coupon code (e.g. WELCOME10)"
+                            value={couponCodeInput}
+                            onChange={(e) => {
+                              setCouponCodeInput(e.target.value.toUpperCase());
+                              if (couponError) setCouponError(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleApplyCoupon(e);
+                              }
+                            }}
+                            className="flex-1 px-3 py-2 text-xs uppercase font-mono tracking-wider bg-[#FAF9F6] border border-burnishedGold/25 rounded focus:outline-none focus:border-deodharForest"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleApplyCoupon}
+                            disabled={validateCouponMutation.isPending || !couponCodeInput.trim()}
+                            className="px-4 py-2 bg-deodharForest text-richCream text-xs font-bold uppercase tracking-wider rounded hover:bg-deodharForest/90 disabled:opacity-50 flex items-center justify-center transition-colors"
+                          >
+                            {validateCouponMutation.isPending ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              "Apply"
+                            )}
+                          </button>
+                        </div>
+                        {couponError && (
+                          <p className="text-[11px] text-red-600 font-medium animate-fade-in">
+                            {couponError}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Pricing breakdown */}
                   <div className="space-y-3 font-sans text-xs border-t border-burnishedGold/10 pt-4">
                     {parseFloat(String(cart?.summary?.total_discount ?? 0)) > 0 && (
@@ -615,6 +777,17 @@ export default function CheckoutPage() {
                         </span>
                         <span className="font-bold">
                           -{formatINR(parseFloat(String(cart?.summary?.total_discount)))}
+                        </span>
+                      </div>
+                    )}
+
+                    {appliedCoupon && couponDiscount > 0 && (
+                      <div className="flex justify-between items-center text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded">
+                        <span className="font-semibold flex items-center gap-1">
+                          🏷️ Coupon Discount ({appliedCoupon.code})
+                        </span>
+                        <span className="font-bold">
+                          -{formatINR(couponDiscount)}
                         </span>
                       </div>
                     )}

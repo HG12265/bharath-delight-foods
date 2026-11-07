@@ -21,6 +21,11 @@ export const checkoutService = {
     return response.data;
   },
 
+  async removeCoupon(checkoutId: string): Promise<Envelope<CheckoutSession>> {
+    const response = await apiClient.post<Envelope<CheckoutSession>>(`/api/v1/checkouts/${checkoutId}/remove-coupon`);
+    return response.data;
+  },
+
   async completeCheckout(checkoutId: string): Promise<Envelope<CheckoutSession>> {
     // We send payment_method: "upi" since COD is removed and only Manual UPI is supported.
     const response = await apiClient.post<Envelope<CheckoutSession>>(`/api/v1/checkouts/${checkoutId}/complete`, {

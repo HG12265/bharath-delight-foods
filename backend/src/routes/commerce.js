@@ -911,11 +911,51 @@ export function checkoutRoutes(context) {
               { status: "completed" },
               session,
             );
-          if (req.body.coupon_code.trim().toUpperCase() !== "WELCOME10")
-            fail("Invalid coupon code.");
-          const discount = amount(checkout.subtotal)
-            .times("0.10")
-            .toDecimalPlaces(2);
+
+          const code = req.body.coupon_code.trim().toUpperCase();
+          let discount = amount(0);
+
+          // Check dynamic coupon in database
+          const couponDoc = await db.collection("coupons").findOne(
+            { code, status: "active", ...active },
+            { session },
+          );
+
+          if (couponDoc) {
+            if (couponDoc.valid_until && new Date(couponDoc.valid_until) < new Date()) {
+              fail("This coupon code has expired.");
+            }
+            if (couponDoc.usage_limit && (couponDoc.used_count || 0) >= couponDoc.usage_limit) {
+              fail("This coupon usage limit has been reached.");
+            }
+            const minOrder = parseFloat(String(couponDoc.min_order_amount || 0));
+            const subtotalNum = parseFloat(String(checkout.subtotal || 0));
+            if (minOrder > 0 && subtotalNum < minOrder) {
+              fail(`Minimum order amount of ₹${minOrder} is required for this coupon.`);
+            }
+
+            if (couponDoc.discount_type === "percentage") {
+              let pctDiscount = amount(checkout.subtotal)
+                .times(amount(couponDoc.discount_value).dividedBy(100));
+              if (couponDoc.max_discount_amount && pctDiscount.greaterThan(couponDoc.max_discount_amount)) {
+                pctDiscount = amount(couponDoc.max_discount_amount);
+              }
+              discount = pctDiscount.toDecimalPlaces(2);
+            } else {
+              // Flat amount discount
+              const flatVal = amount(couponDoc.discount_value);
+              discount = flatVal.greaterThan(amount(checkout.subtotal))
+                ? amount(checkout.subtotal)
+                : flatVal.toDecimalPlaces(2);
+            }
+          } else if (code === "WELCOME10") {
+            discount = amount(checkout.subtotal)
+              .times("0.10")
+              .toDecimalPlaces(2);
+          } else {
+            fail("Invalid or expired coupon code.");
+          }
+
           return update(
             db,
             "checkouts",
@@ -926,7 +966,7 @@ export function checkoutRoutes(context) {
                 discount,
                 await settings(db, session),
               ),
-              coupon_code: "WELCOME10",
+              coupon_code: code,
             },
             session,
           );
@@ -937,5 +977,41 @@ export function checkoutRoutes(context) {
       },
     );
   }
+
+  // Remove coupon from checkout
+  router.post("/:checkout_id/remove-coupon", async (req, res) => {
+    let expired = false;
+    const result = await transaction(context, async (session) => {
+      const checkout = await get(
+        db,
+        "checkouts",
+        req.params.checkout_id,
+        session,
+      );
+      owns(req, checkout);
+      if (checkout.status !== "initiated") fail("Checkout is inactive.");
+      if (checkout.expires_at < now()) {
+        expired = true;
+        return expireCheckout(db, checkout, session);
+      }
+      return update(
+        db,
+        "checkouts",
+        req.params.checkout_id,
+        {
+          ...priceCheckout(
+            checkout.subtotal,
+            0,
+            await settings(db, session),
+          ),
+          coupon_code: null,
+        },
+        session,
+      );
+    });
+    if (expired)
+      fail("Checkout session has expired.", 400, "CHECKOUT_EXPIRED");
+    ok(res, checkoutView(result));
+  });
   return router;
 }

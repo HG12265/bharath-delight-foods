@@ -359,7 +359,9 @@ export function orderRoutes(context, admin = false) {
             tax_total: checkout.tax_estimate,
             shipping_fee: checkout.shipping_fee,
             grand_total: checkout.grand_total,
+            coupon_code: checkout.coupon_code || null,
           },
+          coupon_code: checkout.coupon_code || null,
           payment_status: "pending",
           fulfillment_status: "pending",
           order_status: "pending_payment",
@@ -369,6 +371,13 @@ export function orderRoutes(context, admin = false) {
         },
         session,
       );
+      if (checkout.coupon_code) {
+        await db.collection("coupons").updateOne(
+          { code: checkout.coupon_code.trim().toUpperCase(), ...active },
+          { $inc: { used_count: 1 }, $set: { updated_at: now() } },
+          { session },
+        );
+      }
       // Cart will be converted/cleared only after payment is confirmed/submitted
       await update(
         db,

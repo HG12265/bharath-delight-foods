@@ -482,6 +482,17 @@ export default function OrderDetailsPage() {
 
                 {/* Totals */}
                 <div className="space-y-3 font-sans text-xs border-t border-burnishedGold/10 pt-4">
+                  {parseFloat(String(order.pricing.discount || 0)) > 0 && (
+                    <div className="flex justify-between items-center text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded font-semibold">
+                      <span>
+                        🏷️ Discount {((order.pricing as any).coupon_code || (order as any).coupon_code) ? `(${((order.pricing as any).coupon_code || (order as any).coupon_code)})` : ""}
+                      </span>
+                      <span className="font-bold">
+                        -{formatINR(order.pricing.discount)}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-center text-indianInk/70">
                     <span>Subtotal</span>
                     <span className="font-semibold">{formatINR(order.pricing.subtotal)}</span>

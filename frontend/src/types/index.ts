@@ -573,3 +573,66 @@ export interface UpdateOfferPayload {
   }>;
 }
 
+export interface Coupon {
+  _id: string;
+  id?: string;
+  code: string;
+  name: string;
+  description?: string;
+  discount_type: "flat" | "percentage";
+  discount_value: number;
+  min_order_amount: number;
+  max_discount_amount?: number | null;
+  usage_limit?: number | null;
+  used_count: number;
+  status: "active" | "inactive";
+  valid_from?: string;
+  valid_until?: string | null;
+  is_deleted?: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CouponStats {
+  total: number;
+  active: number;
+  inactive: number;
+  total_used: number;
+}
+
+export interface CreateCouponPayload {
+  code: string;
+  name: string;
+  description?: string;
+  discount_type: "flat" | "percentage";
+  discount_value: number;
+  min_order_amount?: number;
+  max_discount_amount?: number | null;
+  usage_limit?: number | null;
+  status?: "active" | "inactive";
+  valid_until?: string | null;
+}
+
+export interface UpdateCouponPayload {
+  name?: string;
+  description?: string;
+  discount_type?: "flat" | "percentage";
+  discount_value?: number;
+  min_order_amount?: number;
+  max_discount_amount?: number | null;
+  usage_limit?: number | null;
+  status?: "active" | "inactive";
+  valid_until?: string | null;
+}
+
+export interface ValidateCouponResult {
+  valid: boolean;
+  code: string;
+  name: string;
+  discount_type: "flat" | "percentage";
+  discount_value: number;
+  discount_amount: number;
+  min_order_amount?: number;
+}
+
+

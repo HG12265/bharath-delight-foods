@@ -25,6 +25,7 @@ import {
   FolderTree,
   FileSpreadsheet,
   BadgePercent,
+  Ticket,
 } from "lucide-react";
 
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
@@ -80,7 +81,7 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
 
   // 2. If Warehouse, check if attempting to access restricted pages
   const isWarehouse = role === "warehouse";
-  const restrictedPaths = ["/admin/payments", "/admin/reviews", "/admin/settings", "/admin/categories", "/admin/offers"];
+  const restrictedPaths = ["/admin/payments", "/admin/reviews", "/admin/settings", "/admin/categories", "/admin/offers", "/admin/coupons"];
   const isPathRestricted = restrictedPaths.some(path => pathname.startsWith(path));
 
   if (isWarehouse && isPathRestricted) {
@@ -94,6 +95,7 @@ function AdminRoleGuard({ children }: { children: React.ReactNode }) {
     { title: "Reports", href: "/admin/reports", icon: FileSpreadsheet, roles: ["admin", "warehouse"] },
     { title: "Products", href: "/admin/products", icon: Tags, roles: ["admin", "warehouse"] },
     { title: "Offers", href: "/admin/offers", icon: BadgePercent, roles: ["admin"] },
+    { title: "Coupons", href: "/admin/coupons", icon: Ticket, roles: ["admin"] },
     { title: "Categories", href: "/admin/categories", icon: FolderTree, roles: ["admin"] },
     { title: "Payments", href: "/admin/payments", icon: CreditCard, roles: ["admin"] },
     { title: "Shipments", href: "/admin/shipments", icon: Truck, roles: ["admin", "warehouse"] },

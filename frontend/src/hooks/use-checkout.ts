@@ -14,6 +14,12 @@ export const useApplyCoupon = () => {
   });
 };
 
+export const useRemoveCoupon = () => {
+  return useMutation({
+    mutationFn: (checkoutId: string) => checkoutService.removeCoupon(checkoutId),
+  });
+};
+
 export const useCompleteCheckout = () => {
   const queryClient = useQueryClient();
   return useMutation({

@@ -30,6 +30,7 @@ import {
 } from "./routes/admin.js";
 import { mediaRoutes } from "./routes/media.js";
 import { offerRoutes } from "./routes/offers.js";
+import { couponRoutes } from "./routes/coupons.js";
 import { sendPendingEmails } from "./documents.js";
 import { serveFrontend } from "./frontend.js";
 
@@ -172,6 +173,7 @@ export function createApp(context) {
     ["reviews", reviewRoutes],
     ["notifications", notificationRoutes],
     ["offers", offerRoutes],
+    ["coupons", couponRoutes],
   ]) {
     app.use(`/api/v1/${prefix}`, routes(context));
     app.use(`/api/v1/admin/${prefix}`, routes(context, true));
