@@ -14,7 +14,24 @@ import { useMediaAsset } from "@/hooks/use-media";
 import { formatINR, getProductFallbackImage } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { JsonLd } from "@/components/seo/json-ld";
-import { ShieldCheck, Check, ArrowLeft, Plus, Minus, Loader2, Heart, Star, MessageSquare } from "lucide-react";
+import {
+  ShieldCheck,
+  Check,
+  ArrowLeft,
+  Plus,
+  Minus,
+  Loader2,
+  Heart,
+  Star,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  Leaf,
+  Sparkles,
+  Flame,
+  Utensils,
+  Award,
+} from "lucide-react";
 
 interface PageProps {
   params: { slug: string };
@@ -131,7 +148,28 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const volumeText = selectedVariant?.volume_weight || selectedVariant?.title || "Standard";
   const regionName = product.sourcing?.region || "Tamil Nadu";
-  const descriptionText = product.description;
+  const descriptionText = product.description || "";
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
+
+  // Split description text into clean, formatted paragraphs
+  const descriptionParagraphs = React.useMemo(() => {
+    if (!descriptionText) return [];
+    if (descriptionText.includes("\n")) {
+      return descriptionText
+        .split(/\n+/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+    }
+    const sentences = descriptionText.match(/[^.!?]+[.!?]+(\s|$)/g) || [descriptionText];
+    if (sentences.length <= 3) return [descriptionText.trim()];
+
+    const chunks: string[] = [];
+    const chunkSize = Math.ceil(sentences.length / 3);
+    for (let i = 0; i < sentences.length; i += chunkSize) {
+      chunks.push(sentences.slice(i, i + chunkSize).join("").trim());
+    }
+    return chunks.filter(Boolean);
+  }, [descriptionText]);
 
   const imageSrc = product.media_urls?.[0] || getProductFallbackImage(slug);
 
@@ -356,9 +394,59 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               <div className="w-full h-px bg-burnishedGold/15" />
 
-              <p className="font-sans text-sm text-indianInk/80 leading-relaxed">
-                {descriptionText}
-              </p>
+              {/* Formatted Overview & Key Highlights */}
+              <div className="space-y-3.5">
+                {/* Description Preview / Expandable */}
+                <div className="space-y-2">
+                  <div className={`text-sm text-indianInk/85 font-sans leading-relaxed transition-all duration-300 relative ${
+                    !isDescExpanded && descriptionParagraphs.length > 1 ? "max-h-[88px] overflow-hidden" : ""
+                  }`}>
+                    {descriptionParagraphs.map((para, idx) => (
+                      <p key={idx} className={idx > 0 ? "mt-2.5" : ""}>
+                        {para}
+                      </p>
+                    ))}
+                    {!isDescExpanded && descriptionParagraphs.length > 1 && (
+                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#FFFDF0] via-[#FAF9F6]/80 to-transparent pointer-events-none" />
+                    )}
+                  </div>
+
+                  {descriptionParagraphs.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDescExpanded(!isDescExpanded)}
+                      className="inline-flex items-center gap-1.5 text-xs font-sans font-bold text-deodharForest hover:text-burnishedGold transition-colors tracking-wide pt-0.5 outline-none select-none"
+                    >
+                      <span>{isDescExpanded ? "Show Less" : "Read Full Description"}</span>
+                      {isDescExpanded ? (
+                        <ChevronUp className="w-3.5 h-3.5 text-burnishedGold" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5 text-burnishedGold" />
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Key Quick Highlights Badges */}
+                <div className="grid grid-cols-2 gap-2 pt-1 font-sans">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white/90 border border-burnishedGold/15 rounded text-xs text-deodharForest font-medium shadow-xs">
+                    <Leaf className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                    <span className="truncate">100% Pure Cow Ghee</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white/90 border border-burnishedGold/15 rounded text-xs text-deodharForest font-medium shadow-xs">
+                    <Sparkles className="w-3.5 h-3.5 text-burnishedGold shrink-0" />
+                    <span className="truncate">Slow-Simmered Aroma</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white/90 border border-burnishedGold/15 rounded text-xs text-deodharForest font-medium shadow-xs">
+                    <Flame className="w-3.5 h-3.5 text-warmSaffron shrink-0" />
+                    <span className="truncate">Golden Granular Texture</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white/90 border border-burnishedGold/15 rounded text-xs text-deodharForest font-medium shadow-xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-deodharForest shrink-0" />
+                    <span className="truncate">Zero Preservatives</span>
+                  </div>
+                </div>
+              </div>
 
               {/* Quantity Selector & Action Buttons */}
               <div className="space-y-3 pt-2">
@@ -464,6 +552,101 @@ export default function ProductDetailPage({ params }: PageProps) {
             </div>
 
           </div>
+
+          {/* Detailed Product Story & Culinary Uses Section */}
+          <section className="mt-14 sm:mt-20 border-t border-burnishedGold/15 pt-12 max-w-6xl mx-auto">
+            <div className="bg-white border border-burnishedGold/20 rounded-xl p-6 sm:p-10 shadow-[0_4px_25px_rgba(25,25,25,0.03)] space-y-8">
+              {/* Section Header */}
+              <div className="space-y-1.5 border-b border-burnishedGold/10 pb-5">
+                <span className="text-[10px] font-sans font-bold uppercase tracking-[0.2em] text-burnishedGold">
+                  Authentic Regional Craft
+                </span>
+                <h2 className="font-serif text-2xl sm:text-3xl font-bold text-deodharForest">
+                  About {product.name}
+                </h2>
+                <p className="text-xs text-indianInk/60 font-sans">
+                  Sourced authentically from {regionName} • Made using time-honoured culinary traditions
+                </p>
+              </div>
+
+              {/* Grid: Story on left, Culinary & Quality on right */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {/* Left Column: Formatted Story */}
+                <div className="lg:col-span-7 space-y-5">
+                  <div className="bg-[#FFFDF0] border-l-4 border-gheeGold p-4 rounded-r-md shadow-xs">
+                    <p className="font-serif text-sm sm:text-base text-deodharForest italic leading-relaxed">
+                      &ldquo;Slowly heated from pure cow butter to retain the comforting aroma, clarity, and golden granular richness that defines authentic Indian kitchens.&rdquo;
+                    </p>
+                  </div>
+
+                  <div className="space-y-3.5 font-sans text-sm text-indianInk/85 leading-relaxed">
+                    {descriptionParagraphs.map((para, idx) => (
+                      <p key={idx}>
+                        {para}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right Column: Culinary Uses & Purity Standards */}
+                <div className="lg:col-span-5 space-y-5">
+                  {/* Culinary Recommendations */}
+                  <div className="bg-[#FAF9F6] border border-burnishedGold/20 rounded-lg p-5 space-y-3 shadow-xs">
+                    <div className="flex items-center gap-2">
+                      <Utensils className="w-4 h-4 text-deodharForest" />
+                      <h3 className="font-serif text-base font-bold text-deodharForest">
+                        Traditional Culinary Pairings
+                      </h3>
+                    </div>
+                    <ul className="space-y-2.5 text-xs font-sans text-indianInk/75">
+                      <li className="flex items-start gap-2">
+                        <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                        <span><strong className="text-deodharForest font-semibold">Tadka &amp; Tempering:</strong> Elevates rasam, sambar, and dal with intense regional aroma.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                        <span><strong className="text-deodharForest font-semibold">Hot Steamed Rice:</strong> Delicious drizzle over piping hot rice, podi, and pongal.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                        <span><strong className="text-deodharForest font-semibold">Tiffin Drizzle:</strong> Melts smoothly over crispy golden dosas, uttapams, and soft chapatis.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                        <span><strong className="text-deodharForest font-semibold">Festive Sweets:</strong> The secret behind rich, fragrant kesari, ladoos, and traditional halwa.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Quality Assurance Card */}
+                  <div className="border border-burnishedGold/15 rounded-lg p-4 bg-white space-y-2 shadow-xs">
+                    <h4 className="font-serif text-sm font-bold text-deodharForest flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-burnishedGold" />
+                      Quality &amp; Purity Standards
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] font-sans text-indianInk/70 pt-1">
+                      <div className="flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-gheeGold" />
+                        <span>100% Pure Cow Ghee</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-gheeGold" />
+                        <span>No Artificial Flavours</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-gheeGold" />
+                        <span>Chemical &amp; Palm Oil Free</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Check className="w-3 h-3 text-gheeGold" />
+                        <span>Hygienic Sealed Glass Jar</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
 
           {/* Customer Reviews Section */}
           <section id="reviews" className="mt-16 sm:mt-24 border-t border-burnishedGold/15 pt-12 max-w-6xl mx-auto scroll-mt-24">
