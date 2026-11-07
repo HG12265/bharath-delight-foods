@@ -3,7 +3,7 @@ import { siteConfig } from "@/config/site";
 import { env } from "@/lib/env";
 
 export const defaultMetadata: Metadata = {
-  metadataBase: new URL("https://bharath-delight-foods.vercel.app"),
+  metadataBase: new URL("https://bharathdelightfoods.com"),
   applicationName: "Bharath Delight Foods",
   title: {
     default: "Bharath Delight Foods — Authenticity in Every Delight.",
@@ -19,7 +19,7 @@ export const defaultMetadata: Metadata = {
     title: "Bharath Delight Foods — Authenticity in Every Delight.",
     description:
       "Expertly curated premium Indian foods. Sourced from heritage regions, laboratory-verified for purity, and trace-certified by batch.",
-    url: "https://bharath-delight-foods.vercel.app/",
+    url: "https://bharathdelightfoods.com/",
     siteName: "Bharath Delight Foods",
     type: "website",
     images: [
