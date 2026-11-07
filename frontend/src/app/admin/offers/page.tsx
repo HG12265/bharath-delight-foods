@@ -44,7 +44,7 @@ interface SelectedVariantConfig {
   variant_title: string;
   original_price: number;
   discount_type: "percentage" | "fixed";
-  discount_value: number;
+  discount_value: number | string;
   offer_price: number;
 }
 
@@ -86,7 +86,7 @@ export default function AdminOffersPage() {
 
   // Bulk discount tool in modal
   const [bulkDiscountType, setBulkDiscountType] = useState<"percentage" | "fixed">("percentage");
-  const [bulkDiscountValue, setBulkDiscountValue] = useState<number>(10);
+  const [bulkDiscountValue, setBulkDiscountValue] = useState<number | string>(10);
 
   const offers = useMemo(() => offersRes?.data?.offers || [], [offersRes]);
   const stats = useMemo(
@@ -187,7 +187,7 @@ export default function AdminOffersPage() {
       } else {
         const origPrice = Number(variant.price);
         const discountType = bulkDiscountType;
-        const discountValue = bulkDiscountValue;
+        const discountValue = typeof bulkDiscountValue === "number" ? bulkDiscountValue : parseFloat(String(bulkDiscountValue)) || 10;
         const offerPrice = calculateOfferPrice(origPrice, discountType, discountValue);
 
         next[variant.variant_id] = {
@@ -220,7 +220,7 @@ export default function AdminOffersPage() {
         variants.forEach((v) => {
           const origPrice = Number(v.price);
           const discountType = bulkDiscountType;
-          const discountValue = bulkDiscountValue;
+          const discountValue = typeof bulkDiscountValue === "number" ? bulkDiscountValue : parseFloat(String(bulkDiscountValue)) || 10;
           const offerPrice = calculateOfferPrice(origPrice, discountType, discountValue);
 
           next[v.variant_id] = {
@@ -252,8 +252,11 @@ export default function AdminOffersPage() {
       if (!current) return prev;
 
       const newType = field === "discount_type" ? val : current.discount_type;
-      const newVal = field === "discount_value" ? Number(val) : current.discount_value;
-      const newOfferPrice = calculateOfferPrice(current.original_price, newType, newVal);
+      const newVal = field === "discount_value" 
+        ? (val === "" ? "" : isNaN(Number(val)) ? val : Number(val))
+        : current.discount_value;
+      const numericVal = typeof newVal === "number" ? newVal : parseFloat(String(newVal)) || 0;
+      const newOfferPrice = calculateOfferPrice(current.original_price, newType, numericVal);
 
       return {
         ...prev,
@@ -269,6 +272,9 @@ export default function AdminOffersPage() {
 
   // Apply bulk discount to all currently selected variants
   const handleApplyBulkDiscount = () => {
+    const numBulk = typeof bulkDiscountValue === "number" ? bulkDiscountValue : parseFloat(String(bulkDiscountValue)) || 0;
+    if (numBulk <= 0) return;
+
     setSelectedVariants((prev) => {
       const next = { ...prev };
       Object.keys(next).forEach((vId) => {
@@ -276,12 +282,12 @@ export default function AdminOffersPage() {
         const newOfferPrice = calculateOfferPrice(
           item.original_price,
           bulkDiscountType,
-          bulkDiscountValue,
+          numBulk,
         );
         next[vId] = {
           ...item,
           discount_type: bulkDiscountType,
-          discount_value: bulkDiscountValue,
+          discount_value: numBulk,
           offer_price: newOfferPrice,
         };
       });
@@ -317,17 +323,18 @@ export default function AdminOffersPage() {
 
     // Verify all discount values
     for (const item of itemsList) {
-      if (item.discount_value <= 0) {
+      const discountNum = Number(item.discount_value);
+      if (isNaN(discountNum) || discountNum <= 0) {
         setFormError(`Discount value must be greater than zero for "${item.product_name} - ${item.variant_title}".`);
         return;
       }
-      if (item.discount_type === "percentage" && item.discount_value >= 100) {
+      if (item.discount_type === "percentage" && discountNum >= 100) {
         setFormError(`Percentage discount must be less than 100% for "${item.product_name} - ${item.variant_title}".`);
         return;
       }
-      if (item.discount_type === "fixed" && item.discount_value >= item.original_price) {
+      if (item.discount_type === "fixed" && discountNum >= item.original_price) {
         setFormError(
-          `Fixed discount (₹${item.discount_value}) cannot exceed or equal original price (₹${item.original_price}) for "${item.product_name} - ${item.variant_title}".`,
+          `Fixed discount (₹${discountNum}) cannot exceed or equal original price (₹${item.original_price}) for "${item.product_name} - ${item.variant_title}".`,
         );
         return;
       }
@@ -346,7 +353,7 @@ export default function AdminOffersPage() {
         variant_sku: i.variant_sku,
         variant_title: i.variant_title,
         discount_type: i.discount_type,
-        discount_value: i.discount_value,
+        discount_value: Number(i.discount_value),
       })),
     };
 
@@ -876,11 +883,13 @@ export default function AdminOffersPage() {
                       </select>
                       <input
                         type="number"
-                        min="1"
-                        max="99"
+                        step="any"
+                        min="0.01"
+                        {...(bulkDiscountType === "percentage" ? { max: 99.99 } : {})}
+                        placeholder={bulkDiscountType === "percentage" ? "10%" : "₹100"}
                         value={bulkDiscountValue}
-                        onChange={(e) => setBulkDiscountValue(Number(e.target.value))}
-                        className="w-16 text-xs border border-indianInk/20 rounded px-2 py-1 bg-white font-bold"
+                        onChange={(e) => setBulkDiscountValue(e.target.value === "" ? "" : Number(e.target.value))}
+                        className="w-24 text-xs border border-indianInk/20 rounded px-2 py-1 bg-white font-bold"
                       />
                       <button
                         type="button"
@@ -1076,7 +1085,9 @@ export default function AdminOffersPage() {
                                     </select>
                                     <input
                                       type="number"
-                                      min="1"
+                                      step="any"
+                                      min="0.01"
+                                      {...(item.discount_type === "percentage" ? { max: 99.99 } : {})}
                                       value={item.discount_value}
                                       onChange={(e) =>
                                         handleUpdateVariantDiscount(
@@ -1085,7 +1096,7 @@ export default function AdminOffersPage() {
                                           e.target.value,
                                         )
                                       }
-                                      className="w-16 text-xs border border-indianInk/20 rounded px-2 py-1 bg-white font-bold"
+                                      className="w-24 text-xs border border-indianInk/20 rounded px-2 py-1 bg-white font-bold"
                                     />
                                   </div>
                                 </td>
