@@ -48,6 +48,8 @@ const Page27 = lazy(() => import("./app/products/[slug]/page"));
 const Page28 = lazy(() => import("./app/promise/page"));
 const Page29 = lazy(() => import("./app/refund-cancellation-policy/page"));
 const Page30 = lazy(() => import("./app/register/page"));
+const PageResetPassword = lazy(() => import("./app/reset-password/page"));
+const PageForgotPassword = lazy(() => import("./app/forgot-password/page"));
 const Page31 = lazy(() => import("./app/shipping-policy/page"));
 const Page32 = lazy(() => import("./app/shop/[category]/page"));
 const Page33 = lazy(() => import("./app/shop/page"));
@@ -381,6 +383,22 @@ function AppRoutes() {
           element={
             <PageBoundary key={location.pathname}>
               <RoutePage Page={Page30} />
+            </PageBoundary>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PageBoundary key={location.pathname}>
+              <RoutePage Page={PageResetPassword} />
+            </PageBoundary>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <PageBoundary key={location.pathname}>
+              <RoutePage Page={PageForgotPassword} />
             </PageBoundary>
           }
         />
