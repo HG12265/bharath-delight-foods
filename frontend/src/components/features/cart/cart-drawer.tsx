@@ -18,6 +18,8 @@ export const CartDrawer: React.FC = () => {
   const { data: cartData, isPending, isError } = useCart();
   const updateItemMutation = useUpdateCartItem();
   const removeItemMutation = useRemoveCartItem();
+  const { data: meData } = useMe();
+  const isAuthenticated = !!meData?.success && !!meData?.data;
 
   const cart = cartData?.data;
   const items = cart?.items || [];
@@ -48,9 +50,6 @@ export const CartDrawer: React.FC = () => {
   const handleRemoveItem = (variantId: string) => {
     removeItemMutation.mutate({ variantId });
   };
-
-  const { data: meData } = useMe();
-  const isAuthenticated = !!meData?.success && !!meData?.data;
 
   const handleCheckoutRedirect = () => {
     closeCart();
