@@ -325,6 +325,9 @@ export function cartRoutes(context) {
     ok(res, await cartView(db, result));
   }
   router.post("/me/items", validate("CartItemAdd"), (req, res) => {
+    if (!req.user) {
+      fail("Authentication required. Please sign in to add items to your cart.", 401);
+    }
     req.body.quantity ??= 1;
     return change(req, res, "add");
   });
@@ -722,6 +725,9 @@ export function checkoutRoutes(context) {
     "/initiate",
     validate("CheckoutInitiateRequest"),
     async (req, res) => {
+      if (!req.user) {
+        fail("Authentication required. Please sign in to place an order.", 401);
+      }
       const body = req.body;
       if (
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email) ||

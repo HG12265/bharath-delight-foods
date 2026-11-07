@@ -17,7 +17,14 @@ import { ShippingAddress } from "@/types";
 export default function CheckoutPage() {
   const router = useRouter();
   const { data: cartData, isPending: isCartPending } = useCart();
-  const { data: meData } = useMe();
+  const { data: meData, isPending: isMePending, isError: isMeError } = useMe();
+  const isAuthenticated = !!meData?.success && !!meData?.data;
+
+  useEffect(() => {
+    if (!isMePending && (!isAuthenticated || isMeError)) {
+      router.push(`/login?redirect=${encodeURIComponent("/checkout")}`);
+    }
+  }, [isMePending, isAuthenticated, isMeError, router]);
   const initiateCheckoutMutation = useInitiateCheckout();
   const completeCheckoutMutation = useCompleteCheckout();
   const createOrderMutation = useCreateOrderFromCheckout();
@@ -226,6 +233,19 @@ export default function CheckoutPage() {
       }
     });
   };
+
+  if (isMePending || !isAuthenticated || isMeError) {
+    return (
+      <PublicLayout>
+        <div className="min-h-screen bg-richCream flex flex-col justify-center items-center font-sans py-16">
+          <Loader2 className="w-10 h-10 text-burnishedGold animate-spin" />
+          <p className="text-indianInk/60 text-xs tracking-wider uppercase font-semibold mt-3">
+            Verifying account session...
+          </p>
+        </div>
+      </PublicLayout>
+    );
+  }
 
   return (
     <PublicLayout>

@@ -5,6 +5,7 @@ import Link from "@/platform/link";
 import Image from "@/platform/image";
 import { useRouter } from "@/platform/navigation";
 import { useCart, useUpdateCartItem, useRemoveCartItem } from "@/hooks/use-cart";
+import { useMe } from "@/hooks/use-auth";
 import { useCartDrawer } from "@/providers/cart-drawer-provider";
 import { formatINR, getProductFallbackImage } from "@/lib/utils";
 import { X, Plus, Minus, Trash2, ShoppingBag, Loader2 } from "lucide-react";
@@ -48,9 +49,16 @@ export const CartDrawer: React.FC = () => {
     removeItemMutation.mutate({ variantId });
   };
 
+  const { data: meData } = useMe();
+  const isAuthenticated = !!meData?.success && !!meData?.data;
+
   const handleCheckoutRedirect = () => {
     closeCart();
-    router.push("/checkout");
+    if (!isAuthenticated) {
+      router.push(`/login?redirect=${encodeURIComponent("/checkout")}`);
+    } else {
+      router.push("/checkout");
+    }
   };
 
   const handleShopRedirect = () => {

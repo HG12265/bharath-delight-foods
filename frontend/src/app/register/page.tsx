@@ -1,9 +1,16 @@
+"use client";
+
 import AuthGuard from "@/components/features/auth/auth-guard";
 import AuthCard from "@/components/features/auth/auth-card";
 import RegisterForm from "@/components/features/auth/register-form";
 import Link from "@/platform/link";
+import { useSearchParams } from "@/platform/navigation";
 
 export default function RegisterPage() {
+  const searchParams = useSearchParams();
+  const redirect = searchParams?.get("redirect");
+  const loginHref = redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login";
+
   return (
     <AuthGuard requireAuth={false}>
       <main className="min-h-screen bg-richCream flex flex-col justify-center items-center px-4 py-12 md:py-24">
@@ -20,7 +27,7 @@ export default function RegisterPage() {
           subtitle="Join Bharath Delight Foods to order premium lab-certified foods"
           footerText="Already have an account?"
           footerLinkText="Sign in instead"
-          footerLinkHref="/login"
+          footerLinkHref={loginHref}
         >
           <RegisterForm />
         </AuthCard>

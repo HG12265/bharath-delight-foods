@@ -7,6 +7,7 @@ import { useRouter } from "@/platform/navigation";
 import PublicLayout from "@/components/layout/public-layout";
 import { useCart, useUpdateCartItem, useRemoveCartItem, useClearCart } from "@/hooks/use-cart";
 import { usePublicSettings } from "@/hooks/use-settings";
+import { useMe } from "@/hooks/use-auth";
 import { formatINR, getProductFallbackImage } from "@/lib/utils";
 import { Plus, Minus, Trash2, ShoppingBag, Loader2, ArrowLeft } from "lucide-react";
 
@@ -16,6 +17,8 @@ export default function CartPage() {
   const updateItemMutation = useUpdateCartItem();
   const removeItemMutation = useRemoveCartItem();
   const clearCartMutation = useClearCart();
+  const { data: meData } = useMe();
+  const isAuthenticated = !!meData?.success && !!meData?.data;
 
   const cart = cartData?.data;
   const items = cart?.items || [];
@@ -284,7 +287,13 @@ export default function CartPage() {
                   </p>
 
                   <button
-                    onClick={() => router.push("/checkout")}
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        router.push(`/login?redirect=${encodeURIComponent("/checkout")}`);
+                      } else {
+                        router.push("/checkout");
+                      }
+                    }}
                     disabled={isMutating}
                     className="w-full relative overflow-hidden py-4 bg-deodharForest text-richCream rounded-[4px] font-sans text-xs font-bold tracking-[0.2em] uppercase transition-all duration-300 border border-transparent hover:border-gheeGold hover:shadow-[0_6px_20px_rgba(15,61,46,0.2)] disabled:opacity-50 text-center flex items-center justify-center mt-2"
                   >

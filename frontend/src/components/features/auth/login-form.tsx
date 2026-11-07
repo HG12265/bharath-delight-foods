@@ -53,7 +53,7 @@ export const LoginForm: React.FC = () => {
               router.push("/admin");
             } else {
               const redirectParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : null;
-              const targetUrl = (redirectParam && redirectParam !== "/account") ? redirectParam : "/shop";
+              const targetUrl = (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) ? redirectParam : "/shop";
               router.push(targetUrl);
             }
           } else {

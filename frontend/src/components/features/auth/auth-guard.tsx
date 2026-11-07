@@ -19,14 +19,18 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAuth = tr
   useEffect(() => {
     if (!isPending) {
       if (requireAuth && (!isAuthenticated || isError)) {
-        router.push("/login");
+        const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : "";
+        const loginUrl = currentPath && currentPath !== "/login" && currentPath !== "/register"
+          ? `/login?redirect=${encodeURIComponent(currentPath)}`
+          : "/login";
+        router.push(loginUrl);
       } else if (!requireAuth && isAuthenticated) {
         const role = data?.data?.role;
         if (role === "admin" || role === "warehouse") {
           router.push("/admin");
         } else {
           const redirectParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : null;
-          const targetUrl = (redirectParam && redirectParam !== "/account") ? redirectParam : "/shop";
+          const targetUrl = (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) ? redirectParam : "/shop";
           router.push(targetUrl);
         }
       }

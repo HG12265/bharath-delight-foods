@@ -50,7 +50,9 @@ export const RegisterForm: React.FC = () => {
       errors.first_name = "Full name must be at least 2 characters";
     }
 
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email.trim()) {
+      errors.email = "Email address is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errors.email = "Please enter a valid email address";
     }
 
@@ -102,7 +104,7 @@ export const RegisterForm: React.FC = () => {
                 onSuccess: (loginRes) => {
                   if (loginRes.success) {
                     const redirectParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : null;
-                    const targetUrl = (redirectParam && redirectParam !== "/account") ? redirectParam : "/shop";
+                    const targetUrl = (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("//")) ? redirectParam : "/shop";
                     router.push(targetUrl);
                   } else {
                     setApiError("Account created successfully, but automatic login failed. Please sign in manually.");

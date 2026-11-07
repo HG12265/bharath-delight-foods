@@ -273,6 +273,9 @@ export function orderRoutes(context, admin = false) {
     return router;
   }
   router.post("/from-checkout/:checkout_id", async (req, res) => {
+    if (!req.user) {
+      fail("Authentication required. Please sign in to place an order.", 401);
+    }
     const result = await transaction(context, async (session) => {
       const checkout = await get(
         db,

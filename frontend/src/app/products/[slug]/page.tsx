@@ -164,6 +164,10 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const handleAddToCart = () => {
     if (isCartDisabled) return;
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/products/${slug}`)}`);
+      return;
+    }
     addToCartMutation.mutate(
       {
         payload: {
