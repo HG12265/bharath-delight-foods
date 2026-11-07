@@ -644,8 +644,8 @@ function ShopContent() {
                     {displayedProducts.map((product, index) => {
                       const hasOffer = Boolean(product.has_active_offer);
                       const offerBadge = product.offer_badge;
-                      const effectivePrice = product.min_price || product.display_price || product.variants?.[0]?.price || 0;
-                      const originalPrice = product.original_min_price || product.variants?.[0]?.price || 0;
+                      const effectivePrice = parseFloat(String(product.min_price ?? product.display_price ?? product.variants?.[0]?.price ?? 0)) || 0;
+                      const originalPrice = parseFloat(String(product.original_min_price ?? product.variants?.[0]?.price ?? 0)) || 0;
                       const volumeText = product.variants?.[0]?.volume_weight || product.variants?.[0]?.title || "";
                       const regionName = product.sourcing?.region || "Tamil Nadu";
                       const shortDesc = product.short_description;

@@ -123,11 +123,11 @@ export default function ProductDetailPage({ params }: PageProps) {
   const selectedVariant = variants[selectedVariantIndex] || null;
 
   const hasOffer = Boolean(selectedVariant?.has_offer);
-  const effectivePrice = selectedVariant?.offer_price || selectedVariant?.effective_price || selectedVariant?.price || 0;
-  const originalPrice = selectedVariant?.original_price || selectedVariant?.price || 0;
+  const effectivePrice = parseFloat(String(selectedVariant?.offer_price ?? selectedVariant?.effective_price ?? selectedVariant?.price ?? 0)) || 0;
+  const originalPrice = parseFloat(String(selectedVariant?.original_price ?? selectedVariant?.price ?? 0)) || 0;
   const offerBadge = selectedVariant?.offer_badge || "SPECIAL OFFER";
-  const discountAmount = selectedVariant?.discount_amount || (originalPrice - effectivePrice);
-  const discountPercent = selectedVariant?.discount_percentage || 0;
+  const discountAmount = parseFloat(String(selectedVariant?.discount_amount ?? 0)) || Math.max(0, originalPrice - effectivePrice);
+  const discountPercent = parseFloat(String(selectedVariant?.discount_percentage ?? 0)) || (originalPrice > effectivePrice && originalPrice > 0 ? Math.round(((originalPrice - effectivePrice) / originalPrice) * 100) : 0);
 
   const volumeText = selectedVariant?.volume_weight || selectedVariant?.title || "Standard";
   const regionName = product.sourcing?.region || "Tamil Nadu";

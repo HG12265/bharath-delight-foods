@@ -144,8 +144,8 @@ export const CartDrawer: React.FC = () => {
                 const fallbackImage = getProductFallbackImage(item.product_summary?.slug || productName);
                 const imageSrc = rawImage || fallbackImage;
                 const variantName = item.product_summary?.variant_title || item.product_summary?.volume_weight || "Standard";
-                const itemPrice = item.unit_price_snapshot || 0;
-                const originalPrice = item.original_price || item.product_summary?.original_price || itemPrice;
+                const itemPrice = parseFloat(String(item.unit_price_snapshot ?? 0)) || 0;
+                const originalPrice = parseFloat(String(item.original_price ?? item.product_summary?.original_price ?? itemPrice)) || itemPrice;
                 const hasOffer = Boolean(item.has_offer || (originalPrice > itemPrice));
                 const offerBadge = item.offer_badge || item.product_summary?.offer_badge;
                 const itemTotal = itemPrice * item.quantity;
