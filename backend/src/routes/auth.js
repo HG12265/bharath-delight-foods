@@ -338,15 +338,18 @@ export function authRoutes(context) {
     limiter,
     validate("GoogleLoginRequest"),
     async (req, res) => {
-      if (!process.env.GOOGLE_CLIENT_ID)
+      const googleClientId =
+        process.env.GOOGLE_CLIENT_ID ||
+        "388496280445-h1ag930eib0auv9ccjgr41omofhc5grk.apps.googleusercontent.com";
+      if (!googleClientId)
         fail("Google authentication is not configured.", 503);
-      const verifier = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      const verifier = new OAuth2Client(googleClientId);
       let payload;
       try {
         payload = (
           await verifier.verifyIdToken({
             idToken: req.body.credential,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: googleClientId,
           })
         ).getPayload();
       } catch {

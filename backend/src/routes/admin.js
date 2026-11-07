@@ -520,7 +520,7 @@ export function adminRoutes({ db }) {
         node_backend: true,
         secret_configured: process.env.SECRET_KEY?.length >= 32,
         email_configured: Boolean(process.env.BREVO_API_KEY),
-        google_configured: Boolean(process.env.GOOGLE_CLIENT_ID),
+        google_configured: Boolean(process.env.GOOGLE_CLIENT_ID || "388496280445-h1ag930eib0auv9ccjgr41omofhc5grk.apps.googleusercontent.com"),
         otp_configured: Boolean(process.env.OTP_WEBHOOK_URL),
       },
     }),

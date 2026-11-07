@@ -53,7 +53,7 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
 
   const clientId =
     (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) ||
-    "";
+    "388496280445-h1ag930eib0auv9ccjgr41omofhc5grk.apps.googleusercontent.com";
 
   const handleCredentialResponse = (response: { credential: string }) => {
     if (!response.credential) {
