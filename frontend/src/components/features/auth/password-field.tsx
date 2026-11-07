@@ -5,11 +5,12 @@ import { Eye, EyeOff } from "lucide-react";
 
 interface PasswordFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  labelRight?: React.ReactNode;
   error?: string;
 }
 
 export const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldProps>(
-  ({ label = "Password", error, className = "", ...props }, ref) => {
+  ({ label = "Password", labelRight, error, className = "", ...props }, ref) => {
     const [showPassword, setShowPassword] = useState(false);
 
     const toggleVisibility = () => {
@@ -18,9 +19,12 @@ export const PasswordField = React.forwardRef<HTMLInputElement, PasswordFieldPro
 
     return (
       <div className="flex flex-col gap-2 w-full">
-        <label className="text-sm font-medium tracking-wide uppercase text-indianInk/80 font-sans">
-          {label}
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium tracking-wide uppercase text-indianInk/80 font-sans">
+            {label}
+          </label>
+          {labelRight}
+        </div>
         <div className="relative w-full">
           <input
             ref={ref}

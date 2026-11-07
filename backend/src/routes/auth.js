@@ -382,6 +382,109 @@ export function authRoutes(context) {
       ok(res, await issue(db, customer, res));
     },
   );
+  router.post(
+    "/forgot-password/verify-email",
+    limiter,
+    async (req, res) => {
+      const email = req.body?.email?.toLowerCase()?.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        fail("Please enter a valid email address.", 422);
+      }
+      const customer = await db.collection("customers").findOne({
+        "auth.email": email,
+        ...active,
+      });
+      if (!customer) {
+        fail(
+          "No registered account was found with this email address. Please check your spelling or register for a new account.",
+          404,
+          "ACCOUNT_NOT_FOUND"
+        );
+      }
+      if (customer.auth?.status && customer.auth.status !== "active") {
+        fail("This account is currently inactive or suspended.", 403, "ACCOUNT_INACTIVE");
+      }
+
+      const resetToken = jwt.sign(
+        {
+          sub: String(customer._id),
+          email: customer.auth.email,
+          purpose: "password_reset",
+        },
+        process.env.SECRET_KEY,
+        { expiresIn: "15m" }
+      );
+
+      ok(
+        res,
+        {
+          verified: true,
+          email: customer.auth.email,
+          reset_token: resetToken,
+        },
+        "Email verified successfully. You may now enter your new password."
+      );
+    }
+  );
+  router.post(
+    "/reset-password",
+    limiter,
+    async (req, res) => {
+      const { email, reset_token, new_password } = req.body || {};
+      const normalizedEmail = email?.toLowerCase()?.trim();
+      if (!normalizedEmail || !reset_token || !new_password) {
+        fail("Email, reset token, and new password are required.", 422);
+      }
+      if (typeof new_password !== "string" || new_password.length < 8) {
+        fail("New password must be at least 8 characters long.", 422);
+      }
+
+      let payload;
+      try {
+        payload = jwt.verify(reset_token, process.env.SECRET_KEY, {
+          algorithms: ["HS256"],
+        });
+      } catch {
+        fail("Invalid or expired password reset session. Please verify your email again.", 401, "UNAUTHORIZED");
+      }
+
+      if (
+        payload.purpose !== "password_reset" ||
+        payload.email?.toLowerCase() !== normalizedEmail
+      ) {
+        fail("Invalid reset session credentials.", 401, "UNAUTHORIZED");
+      }
+
+      const customer = await db.collection("customers").findOne({
+        _id: oid(payload.sub),
+        "auth.email": normalizedEmail,
+        ...active,
+      });
+
+      if (!customer) {
+        fail("Customer account not found.", 404, "NOT_FOUND");
+      }
+      if (customer.auth?.status && customer.auth.status !== "active") {
+        fail("User account is inactive.", 401, "UNAUTHORIZED");
+      }
+
+      const passwordHash = await bcrypt.hash(new_password, 12);
+      await db.collection("customers").updateOne(
+        { _id: customer._id },
+        {
+          $set: {
+            "auth.password_hash": passwordHash,
+            "auth.refresh_token_hash": null,
+            updated_at: now(),
+          },
+        }
+      );
+
+      const refreshed = await db.collection("customers").findOne({ _id: customer._id });
+      const session = await issue(db, refreshed, res);
+      ok(res, session, "Password has been reset successfully. You are now logged in.");
+    }
+  );
   return router;
 }
 export function customerRoutes({ db, client }) {

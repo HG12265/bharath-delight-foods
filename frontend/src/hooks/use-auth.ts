@@ -93,6 +93,34 @@ export const useVerifyOtp = () => {
   });
 };
 
+export const useVerifyResetEmail = () => {
+  return useMutation({
+    mutationFn: (email: string) => authService.verifyResetEmail(email),
+  });
+};
+
+export const useResetPassword = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { email: string; reset_token: string; new_password: string }) =>
+      authService.resetPassword(payload),
+    onSuccess: (res) => {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("was_logged_in", "true");
+        if (res?.data?.user) {
+          localStorage.setItem("current_user", JSON.stringify(res.data.user));
+        }
+      }
+      setSessionAuthenticated(true);
+      setRefreshFailed(false);
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+    },
+  });
+};
+
 export const useLogout = () => {
   const queryClient = useQueryClient();
   return useMutation({

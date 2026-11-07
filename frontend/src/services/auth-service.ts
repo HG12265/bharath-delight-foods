@@ -39,6 +39,26 @@ export const authService = {
     return response.data;
   },
 
+  async verifyResetEmail(email: string): Promise<Envelope<{ verified: boolean; email: string; reset_token: string }>> {
+    const response = await apiClient.post<Envelope<{ verified: boolean; email: string; reset_token: string }>>(
+      "/api/v1/auth/forgot-password/verify-email",
+      { email }
+    );
+    return response.data;
+  },
+
+  async resetPassword(payload: { email: string; reset_token: string; new_password: string }): Promise<Envelope<Token>> {
+    const response = await apiClient.post<Envelope<Token>>("/api/v1/auth/reset-password", payload);
+    if (response.data?.data?.access_token) {
+      setAccessToken(response.data.data.access_token);
+      if (response.data.data.user && typeof window !== "undefined") {
+        localStorage.setItem("current_user", JSON.stringify(response.data.data.user));
+        localStorage.setItem("was_logged_in", "true");
+      }
+    }
+    return response.data;
+  },
+
   async logout(): Promise<Envelope<null>> {
     try {
       const response = await apiClient.post<Envelope<null>>("/api/v1/auth/logout");

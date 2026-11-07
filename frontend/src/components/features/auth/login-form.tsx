@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "@/platform/navigation";
+import Link from "@/platform/link";
 import { useLogin } from "../../../hooks/use-auth";
 import PasswordField from "./password-field";
 import GoogleSignInButton from "./google-sign-in-button";
@@ -73,6 +74,8 @@ export const LoginForm: React.FC = () => {
   };
 
   const isPending = loginMutation.isPending;
+  const redirectParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : null;
+  const forgotPasswordHref = redirectParam ? `/reset-password?redirect=${encodeURIComponent(redirectParam)}` : "/reset-password";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full">
@@ -121,6 +124,15 @@ export const LoginForm: React.FC = () => {
 
       {/* Password Input using PasswordField */}
       <PasswordField
+        label="Password"
+        labelRight={
+          <Link
+            href={forgotPasswordHref}
+            className="text-xs font-sans text-kashmirSaffron hover:text-kashmirSaffron/80 font-medium hover:underline transition-colors duration-150"
+          >
+            Forgot Password?
+          </Link>
+        }
         disabled={isPending || success}
         value={password}
         onChange={(e) => {
