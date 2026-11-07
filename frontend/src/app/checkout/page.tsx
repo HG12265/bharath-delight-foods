@@ -682,7 +682,7 @@ export default function CheckoutPage() {
                               {formatINR(itemTotal)}
                             </div>
                             {hasOffer && originalPrice > itemPrice && (
-                              <div className="text-[10px] text-indianInk/40 line-through">
+                              <div className="text-[11px] font-semibold text-indianInk/65 line-through decoration-1 decoration-indianInk/45">
                                 {formatINR(originalPrice * item.quantity)}
                               </div>
                             )}

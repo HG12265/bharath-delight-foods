@@ -729,7 +729,7 @@ function ShopContent() {
                                     {formatINR(effectivePrice)}
                                   </span>
                                   {hasOffer && originalPrice > effectivePrice && (
-                                    <span className="font-sans text-[10px] text-indianInk/40 line-through">
+                                    <span className="font-sans text-[11px] font-semibold text-indianInk/65 line-through decoration-1 decoration-indianInk/50">
                                       {formatINR(originalPrice)}
                                     </span>
                                   )}

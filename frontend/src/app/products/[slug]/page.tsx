@@ -298,7 +298,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                       </span>
                       {hasOffer && originalPrice > effectivePrice && (
                         <>
-                          <span className="text-lg text-indianInk/40 line-through">
+                          <span className="text-xl font-bold text-indianInk/70 line-through decoration-2 decoration-indianInk/50">
                             {formatINR(originalPrice)}
                           </span>
                           <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded font-bold text-[11px]">
