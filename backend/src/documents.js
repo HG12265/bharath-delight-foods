@@ -436,7 +436,7 @@ function buildEmailHtml(email, subject) {
         </p>
 
         <div style="text-align:center;margin:28px 0;">
-          <a href="https://bharath-delight-foods.pages.dev" target="_blank" style="background:#0F3D2E;color:#ffffff;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:bold;display:inline-block;">Visit Bharath Delight Foods Store →</a>
+          <a href="https://bharathdelightfoods.com" target="_blank" style="background:#0F3D2E;color:#ffffff;text-decoration:none;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:bold;display:inline-block;">Visit Bharath Delight Foods Store →</a>
         </div>
 
         <p style="font-size:12px;color:#6b7280;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;text-align:center;">
