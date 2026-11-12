@@ -27,9 +27,9 @@ export const checkoutService = {
   },
 
   async completeCheckout(checkoutId: string): Promise<Envelope<CheckoutSession>> {
-    // We send payment_method: "upi" since COD is removed and only Manual UPI is supported.
+    // PhonePe Gateway is our exclusive official payment method
     const response = await apiClient.post<Envelope<CheckoutSession>>(`/api/v1/checkouts/${checkoutId}/complete`, {
-      payment_method: "upi",
+      payment_method: "phonepe",
     });
     return response.data;
   },

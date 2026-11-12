@@ -75,11 +75,29 @@ export default function AdminPaymentsPage() {
       {/* Title */}
       <div className="border-b border-burnishedGold/10 pb-4">
         <h1 className="font-serif text-2xl sm:text-3xl font-bold text-deodharForest">
-          Pending Payment Proofs
+          Payment Management & Gateway
         </h1>
         <p className="text-xs sm:text-sm text-indianInk/60 mt-1">
-          Review manual UPI transfer screenshots. Verify transfer receipt before marking orders paid.
+          PhonePe Standard Checkout V2 is active. Customer payments are verified and confirmed automatically in real time.
         </p>
+      </div>
+
+      {/* Gateway info card */}
+      <div className="bg-[#FAF9F6] border border-burnishedGold/15 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 font-sans text-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#5f259f]/10 text-[#5f259f] flex items-center justify-center font-bold">
+            ₹
+          </div>
+          <div>
+            <p className="font-bold text-deodharForest text-sm">PhonePe Payment Gateway (Exclusive)</p>
+            <p className="text-indianInk/60">
+              Manual UPI screenshot submission is disabled. All orders are verified instantly by PhonePe.
+            </p>
+          </div>
+        </div>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full border border-green-200">
+          ● Active & Automated
+        </span>
       </div>
 
       {/* Main content grid */}
@@ -155,8 +173,16 @@ export default function AdminPaymentsPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-indianInk/40 italic">
-                      No pending payment proofs to review.
+                    <td colSpan={5} className="px-4 py-12 text-center text-indianInk/60 font-sans">
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <Check className="w-8 h-8 text-green-600 bg-green-50 rounded-full p-1.5 border border-green-200" />
+                        <p className="font-bold text-sm text-indianInk">
+                          All Orders are Processed via PhonePe Automated Gateway
+                        </p>
+                        <p className="text-xs text-indianInk/50 max-w-sm">
+                          Manual UPI screenshot uploads are disabled. PhonePe automatically confirms payment and marks orders as PAID in real time.
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 )}

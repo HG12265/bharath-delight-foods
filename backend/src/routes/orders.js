@@ -638,86 +638,8 @@ export function paymentRoutes(context, admin = false) {
   });
   router.post(
     "/order/:order_id/submit-proof",
-    validate("PaymentProofSubmitRequest"),
     async (req, res) => {
-      const result = await transaction(context, async (session) => {
-        const order = await get(db, "orders", req.params.order_id, session);
-        owns(req, order);
-        if (
-          order.order_status === "cancelled" ||
-          order.payment_status === "paid"
-        )
-          fail("Order cannot accept payment proof.");
-        const payment = await db
-          .collection("payments")
-          .findOne({ order_id: req.params.order_id, ...active }, { session });
-        if (!payment) fail("Initiate payment first.");
-        const media = await get(
-          db,
-          "media_assets",
-          req.body.screenshot_media_id,
-          session,
-        );
-        if (
-          media.status !== "completed" ||
-          media.asset_type !== "payment_proof"
-        )
-          fail("A completed payment proof image is required.");
-        const isProofOwner = req.user
-          ? (media.uploaded_by === String(req.user._id) || req.user.auth.role === "admin")
-          : (media.uploaded_by === (req.guest || "guest") || media.uploaded_by === "guest" || order.guest_token === req.guest);
-        if (!isProofOwner)
-          fail("Payment proof belongs to another account.", 403);
-        const updated = await update(
-          db,
-          "payments",
-          String(payment._id),
-          {
-            screenshot_media_id: req.body.screenshot_media_id,
-            status: "proof_submitted",
-            rejection_reason: null,
-          },
-          session,
-        );
-        await update(
-          db,
-          "orders",
-          req.params.order_id,
-          {
-            order_status: "confirmed",
-            proof_submitted_at: now(),
-          },
-          session,
-        );
-        await convertOrderCart(db, order, session);
-        await notify(
-          db,
-          order.customer_id,
-          "order_placed",
-          "Order Placed Successfully",
-          `Thank you for your order! Your payment screenshot for ${order.order_number} has been received.`,
-          { order_id: req.params.order_id, payment_id: String(payment._id) },
-          session,
-        );
-        await notify(
-          db,
-          null,
-          "payment_proof_submitted",
-          "Payment Proof Submitted",
-          `Payment proof submitted for ${order.order_number}.`,
-          { order_id: req.params.order_id, payment_id: String(payment._id) },
-          session,
-        );
-        await queueEmail(
-          db,
-          "new_order",
-          process.env.ADMIN_EMAIL,
-          { order_number: order.order_number, order_id: req.params.order_id },
-          session,
-        );
-        return updated;
-      });
-      ok(res, paymentView(result));
+      fail("Manual payment proof submission is disabled. All payments are processed via PhonePe.", 400);
     },
   );
 

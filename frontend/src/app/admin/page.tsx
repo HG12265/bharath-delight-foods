@@ -341,57 +341,33 @@ export default function AdminDashboardPage() {
       {isAdmin && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* Pending Payments Preview */}
+          {/* Payment Gateway Status */}
           <div className="bg-white border border-burnishedGold/15 rounded shadow-sm p-5 flex flex-col gap-4">
             <div className="flex items-center justify-between border-b border-burnishedGold/10 pb-3">
               <h2 className="font-serif text-base font-bold text-deodharForest flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-burnishedGold" />
-                Pending Payment Proofs
+                Payment Gateway (PhonePe)
               </h2>
-              <Link href="/admin/payments" className="text-[10px] font-bold text-burnishedGold hover:text-deodharForest flex items-center gap-1 uppercase tracking-widest transition-colors">
-                Verify Proofs <ArrowRight className="w-3 h-3" />
-              </Link>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                ● Live & Automated
+              </span>
             </div>
 
-            <div className="flex-1 overflow-x-auto min-w-full">
-              <table className="w-full text-left font-sans text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-burnishedGold/10 text-indianInk/50">
-                    <th className="py-2.5 font-bold uppercase tracking-wider">Order No</th>
-                    <th className="py-2.5 font-bold uppercase tracking-wider">Amount</th>
-                    <th className="py-2.5 font-bold uppercase tracking-wider">Submitted</th>
-                    <th className="py-2.5 font-bold uppercase tracking-wider">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-burnishedGold/10">
-                  {stats?.pending_payment_proofs && stats.pending_payment_proofs.length > 0 ? (
-                    stats.pending_payment_proofs.map((p) => (
-                      <tr key={p.id} className="hover:bg-richCream/5">
-                        <td className="py-2.5 font-semibold text-deodharForest">#{p.order_number}</td>
-                        <td className="py-2.5 font-semibold">{formatCurrency(Number(p.amount))}</td>
-                        <td className="py-2.5 text-indianInk/60 flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-burnishedGold" />
-                          {new Date(p.created_at).toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short"
-                          })}
-                        </td>
-                        <td className="py-2.5">
-                          <Link href="/admin/payments" className="bg-deodharForest text-richCream font-bold uppercase tracking-widest text-[9px] px-2 py-1 rounded hover:bg-deodharForest/95">
-                            Verify
-                          </Link>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="py-4 text-center text-indianInk/40 italic">
-                        No pending payment proofs.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="space-y-3 font-sans text-xs">
+              <div className="p-3 bg-[#FAF9F6] border border-burnishedGold/10 rounded flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-deodharForest">PhonePe Standard Checkout V2</p>
+                  <p className="text-[11px] text-indianInk/60 mt-0.5">
+                    UPI, Cards & NetBanking with 100% automated instant verification.
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold bg-[#5f259f] text-white px-2.5 py-1 rounded">
+                  Active
+                </span>
+              </div>
+              <p className="text-[11px] text-indianInk/50 italic">
+                Manual UPI screenshot submissions are disabled. All payments are verified directly by PhonePe.
+              </p>
             </div>
           </div>
 

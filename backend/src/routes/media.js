@@ -52,11 +52,6 @@ const rules = {
     extensions: [".jpg", ".jpeg", ".png", ".webp"],
     max: 10,
   },
-  payment_proof: {
-    types: [...imageTypes, "image/jpg"],
-    extensions: [".jpg", ".jpeg", ".png", ".webp"],
-    max: 5,
-  },
   certificate_pdf: {
     types: ["application/pdf"],
     extensions: [".pdf"],
@@ -92,12 +87,6 @@ export function mediaRoutes({ db }) {
       }
       return;
     }
-    if (asset.asset_type === "payment_proof" && !req.user) {
-      if (asset.uploaded_by !== (req.guest || "guest") && asset.uploaded_by !== "guest") {
-        fail("Access forbidden.", 403);
-      }
-      return;
-    }
     if (
       !req.user ||
       (asset.uploaded_by !== String(req.user._id) &&
@@ -119,7 +108,7 @@ export function mediaRoutes({ db }) {
     validate("PresignRequest"),
     async (req, res) => {
       const body = req.body;
-      if (body.asset_type !== "payment_proof" && !req.user) {
+      if (!req.user) {
         fail("Authentication required.", 401, "UNAUTHORIZED");
       }
       const rule = rules[body.asset_type];
