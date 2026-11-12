@@ -1,6 +1,7 @@
 "use client";
 
 import PageBanner from "@/components/brand/page-banner";
+import { OurProductsSection } from "@/components/brand/our-products-section";
 import React from "react";
 import Link from "@/platform/link";
 import Image from "@/platform/image";
@@ -49,6 +50,9 @@ export default function AboutPage() {
             </div>
           </div>
         </PageBanner>
+
+        {/* OUR PRODUCTS — EVERYDAY ESSENTIALS */}
+        <OurProductsSection />
 
         {/* VISION & MISSION SECTION - INTEGRATED CARD LAYOUT */}
         <section className="py-12 bg-[#FAF9F6] border-b border-burnishedGold/15">
